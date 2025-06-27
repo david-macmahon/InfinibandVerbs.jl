@@ -1,0 +1,14 @@
+name = "InfinibandVerbs"
+uuid = "f69cf586-3b52-44a8-bca2-4507e5e0f903"
+authors = ["David MacMahon <davidm@astro.berkeley.edu>"]
+version = "0.0.0"
+
+[deps]
+CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+StaticStrings = "4db0a0c5-418a-4e1d-8806-cb305fe13294"
+rdma_core_jll = "69dc3629-5c98-505f-8bcd-225213cebe70"
+
+[compat]
+CEnum = "0.5"
+StaticStrings = "0.2.6"
+rdma_core_jll = "= 58.0.0"

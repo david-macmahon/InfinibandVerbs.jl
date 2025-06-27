@@ -1,0 +1,13 @@
+[general]
+library_name = "libibverbs"
+prologue_file_path = "prologue.jl"
+output_file_path = "../src/api.jl"
+epilogue_file_path = "epilogue.jl"
+module_name = "API"
+jll_pkg_name = "rdma_core_jll"
+export_symbol_prefixes = ["IBV", "ibv_"]
+output_ignorelist = [
+    "ETH_ALEN",
+    "___ibv_query_port",
+    "ibv_gid"
+]
