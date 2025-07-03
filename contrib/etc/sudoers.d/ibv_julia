@@ -1,0 +1,2 @@
+Defaults! /usr/local/bin/ibv_julia !env_reset,!secure_path,!set_logname
+%sudo ALL=(root) NOPASSWD: /usr/local/bin/ibv_julia

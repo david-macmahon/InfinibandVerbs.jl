@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Change as needed
+sudo=/usr/bin/sudo
+capsh=/usr/sbin/capsh
+
+if [ `id -u` -ne 0 ]
+then
+    dir="$(cd $(dirname "$0"); pwd -P)"
+    file="$(basename $0)"
+    exec "${sudo}" "${dir}/${file}" "${@}"
+    # Should "never" get here
+    exit 1
+fi
+
+user="${SUDO_USER:-${USER:-nobody}}"
+
+unset SUDO_GID SUDO_COMMAND SUDO_USER SUDO_UID
+
+exec "${capsh}" --user="${user}" --inh=cap_net_raw --addamb=cap_net_raw -- -c "julia $@"
