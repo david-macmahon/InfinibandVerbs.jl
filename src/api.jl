@@ -3,16 +3,13 @@ module API
 using rdma_core_jll
 export rdma_core_jll
 
-using CEnum
-
-# ETH_ALEN 
+using CEnum: CEnum, @cenum
 
 const ETH_ALEN = 6
 
-# ibv_gid
+const __VERBS_ABI_IS_EXTENDED = C_NULL - 1
 
 export ibv_gid
-
 struct ibv_gid
     subnet_prefix::UInt64
     interface_id::UInt64
@@ -55,12 +52,20 @@ function Base.setproperty!(x::Ptr{pthread_mutex_t}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::pthread_mutex_t, private::Bool = false)
+    (:__data, :__size, :__align, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct pthread_cond_t
     data::NTuple{48, UInt8}
 end
 
 function Base.getproperty(x::Ptr{pthread_cond_t}, f::Symbol)
-    f === :__data && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/305c8b171016c46dfbb8ca234a543a99b6e3d045/x86_64-linux-gnu/sys-root/usr/include/bits/pthreadtypes.h:117:3)"}(x + 0)
+    f === :__data && return Ptr{var"##Ctag#260"}(x + 0)
     f === :__size && return Ptr{NTuple{48, Cchar}}(x + 0)
     f === :__align && return Ptr{Clonglong}(x + 0)
     return getfield(x, f)
@@ -75,6 +80,14 @@ end
 
 function Base.setproperty!(x::Ptr{pthread_cond_t}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::pthread_cond_t, private::Bool = false)
+    (:__data, :__size, :__align, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 const __u8 = Cuchar
@@ -187,59 +200,107 @@ struct ibv_context_ops
 end
 
 struct ibv_context
-    device::Ptr{ibv_device}
-    ops::ibv_context_ops
-    cmd_fd::Cint
-    async_fd::Cint
-    num_comp_vectors::Cint
-    mutex::pthread_mutex_t
-    abi_compat::Ptr{Cvoid}
+    data::NTuple{328, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_context}, f::Symbol)
+    f === :device && return Ptr{Ptr{ibv_device}}(x + 0)
+    f === :ops && return Ptr{ibv_context_ops}(x + 8)
+    f === :cmd_fd && return Ptr{Cint}(x + 264)
+    f === :async_fd && return Ptr{Cint}(x + 268)
+    f === :num_comp_vectors && return Ptr{Cint}(x + 272)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 280)
+    f === :abi_compat && return Ptr{Ptr{Cvoid}}(x + 320)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_context, f::Symbol)
+    r = Ref{ibv_context}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_context}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_context}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_context, private::Bool = false)
+    (:device, :ops, :cmd_fd, :async_fd, :num_comp_vectors, :mutex, :abi_compat, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 mutable struct verbs_ex_private end
 
 struct verbs_context
-    query_port::Ptr{Cvoid}
-    advise_mr::Ptr{Cvoid}
-    alloc_null_mr::Ptr{Cvoid}
-    read_counters::Ptr{Cvoid}
-    attach_counters_point_flow::Ptr{Cvoid}
-    create_counters::Ptr{Cvoid}
-    destroy_counters::Ptr{Cvoid}
-    reg_dm_mr::Ptr{Cvoid}
-    alloc_dm::Ptr{Cvoid}
-    free_dm::Ptr{Cvoid}
-    modify_flow_action_esp::Ptr{Cvoid}
-    destroy_flow_action::Ptr{Cvoid}
-    create_flow_action_esp::Ptr{Cvoid}
-    modify_qp_rate_limit::Ptr{Cvoid}
-    alloc_parent_domain::Ptr{Cvoid}
-    dealloc_td::Ptr{Cvoid}
-    alloc_td::Ptr{Cvoid}
-    modify_cq::Ptr{Cvoid}
-    post_srq_ops::Ptr{Cvoid}
-    destroy_rwq_ind_table::Ptr{Cvoid}
-    create_rwq_ind_table::Ptr{Cvoid}
-    destroy_wq::Ptr{Cvoid}
-    modify_wq::Ptr{Cvoid}
-    create_wq::Ptr{Cvoid}
-    query_rt_values::Ptr{Cvoid}
-    create_cq_ex::Ptr{Cvoid}
-    priv::Ptr{verbs_ex_private}
-    query_device_ex::Ptr{Cvoid}
-    ibv_destroy_flow::Ptr{Cvoid}
-    ABI_placeholder2::Ptr{Cvoid}
-    ibv_create_flow::Ptr{Cvoid}
-    ABI_placeholder1::Ptr{Cvoid}
-    open_qp::Ptr{Cvoid}
-    create_qp_ex::Ptr{Cvoid}
-    get_srq_num::Ptr{Cvoid}
-    create_srq_ex::Ptr{Cvoid}
-    open_xrcd::Ptr{Cvoid}
-    close_xrcd::Ptr{Cvoid}
-    _ABI_placeholder3::UInt64
-    sz::Csize_t
-    context::ibv_context
+    data::NTuple{648, UInt8}
+end
+
+function Base.getproperty(x::Ptr{verbs_context}, f::Symbol)
+    f === :query_port && return Ptr{Ptr{Cvoid}}(x + 0)
+    f === :advise_mr && return Ptr{Ptr{Cvoid}}(x + 8)
+    f === :alloc_null_mr && return Ptr{Ptr{Cvoid}}(x + 16)
+    f === :read_counters && return Ptr{Ptr{Cvoid}}(x + 24)
+    f === :attach_counters_point_flow && return Ptr{Ptr{Cvoid}}(x + 32)
+    f === :create_counters && return Ptr{Ptr{Cvoid}}(x + 40)
+    f === :destroy_counters && return Ptr{Ptr{Cvoid}}(x + 48)
+    f === :reg_dm_mr && return Ptr{Ptr{Cvoid}}(x + 56)
+    f === :alloc_dm && return Ptr{Ptr{Cvoid}}(x + 64)
+    f === :free_dm && return Ptr{Ptr{Cvoid}}(x + 72)
+    f === :modify_flow_action_esp && return Ptr{Ptr{Cvoid}}(x + 80)
+    f === :destroy_flow_action && return Ptr{Ptr{Cvoid}}(x + 88)
+    f === :create_flow_action_esp && return Ptr{Ptr{Cvoid}}(x + 96)
+    f === :modify_qp_rate_limit && return Ptr{Ptr{Cvoid}}(x + 104)
+    f === :alloc_parent_domain && return Ptr{Ptr{Cvoid}}(x + 112)
+    f === :dealloc_td && return Ptr{Ptr{Cvoid}}(x + 120)
+    f === :alloc_td && return Ptr{Ptr{Cvoid}}(x + 128)
+    f === :modify_cq && return Ptr{Ptr{Cvoid}}(x + 136)
+    f === :post_srq_ops && return Ptr{Ptr{Cvoid}}(x + 144)
+    f === :destroy_rwq_ind_table && return Ptr{Ptr{Cvoid}}(x + 152)
+    f === :create_rwq_ind_table && return Ptr{Ptr{Cvoid}}(x + 160)
+    f === :destroy_wq && return Ptr{Ptr{Cvoid}}(x + 168)
+    f === :modify_wq && return Ptr{Ptr{Cvoid}}(x + 176)
+    f === :create_wq && return Ptr{Ptr{Cvoid}}(x + 184)
+    f === :query_rt_values && return Ptr{Ptr{Cvoid}}(x + 192)
+    f === :create_cq_ex && return Ptr{Ptr{Cvoid}}(x + 200)
+    f === :priv && return Ptr{Ptr{verbs_ex_private}}(x + 208)
+    f === :query_device_ex && return Ptr{Ptr{Cvoid}}(x + 216)
+    f === :ibv_destroy_flow && return Ptr{Ptr{Cvoid}}(x + 224)
+    f === :ABI_placeholder2 && return Ptr{Ptr{Cvoid}}(x + 232)
+    f === :ibv_create_flow && return Ptr{Ptr{Cvoid}}(x + 240)
+    f === :ABI_placeholder1 && return Ptr{Ptr{Cvoid}}(x + 248)
+    f === :open_qp && return Ptr{Ptr{Cvoid}}(x + 256)
+    f === :create_qp_ex && return Ptr{Ptr{Cvoid}}(x + 264)
+    f === :get_srq_num && return Ptr{Ptr{Cvoid}}(x + 272)
+    f === :create_srq_ex && return Ptr{Ptr{Cvoid}}(x + 280)
+    f === :open_xrcd && return Ptr{Ptr{Cvoid}}(x + 288)
+    f === :close_xrcd && return Ptr{Ptr{Cvoid}}(x + 296)
+    f === :_ABI_placeholder3 && return Ptr{UInt64}(x + 304)
+    f === :sz && return Ptr{Csize_t}(x + 312)
+    f === :context && return Ptr{ibv_context}(x + 320)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::verbs_context, f::Symbol)
+    r = Ref{verbs_context}(x)
+    ptr = Base.unsafe_convert(Ptr{verbs_context}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{verbs_context}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::verbs_context, private::Bool = false)
+    (:query_port, :advise_mr, :alloc_null_mr, :read_counters, :attach_counters_point_flow, :create_counters, :destroy_counters, :reg_dm_mr, :alloc_dm, :free_dm, :modify_flow_action_esp, :destroy_flow_action, :create_flow_action_esp, :modify_qp_rate_limit, :alloc_parent_domain, :dealloc_td, :alloc_td, :modify_cq, :post_srq_ops, :destroy_rwq_ind_table, :create_rwq_ind_table, :destroy_wq, :modify_wq, :create_wq, :query_rt_values, :create_cq_ex, :priv, :query_device_ex, :ibv_destroy_flow, :ABI_placeholder2, :ibv_create_flow, :ABI_placeholder1, :open_qp, :create_qp_ex, :get_srq_num, :create_srq_ex, :open_xrcd, :close_xrcd, :_ABI_placeholder3, :sz, :context, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 function verbs_get_ctx(ctx)
@@ -302,10 +363,6 @@ struct ibv_mr
     handle::UInt32
     lkey::UInt32
     rkey::UInt32
-end
-
-function __ibv_reg_mr(pd, addr, length, access, is_access_const)
-    ccall((:__ibv_reg_mr, libibverbs), Ptr{ibv_mr}, (Ptr{ibv_pd}, Ptr{Cvoid}, Csize_t, Cuint, Cint), pd, addr, length, access, is_access_const)
 end
 
 function __ibv_reg_mr_iova(pd, addr, length, iova, access, is_access_const)
@@ -435,6 +492,14 @@ function Base.setproperty!(x::Ptr{ib_uverbs_flow_action_esp_keymat_aes_gcm}, f::
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ib_uverbs_flow_action_esp_keymat_aes_gcm, private::Bool = false)
+    (:iv, :iv_algo, :salt, :icv_len, :key_len, :aes_key, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 @cenum ib_uverbs_flow_action_esp_replay::UInt32 begin
     IB_UVERBS_FLOW_ACTION_ESP_REPLAY_NONE = 0
     IB_UVERBS_FLOW_ACTION_ESP_REPLAY_BMP = 1
@@ -479,6 +544,14 @@ function Base.setproperty!(x::Ptr{ib_uverbs_flow_action_esp_encap}, f::Symbol, v
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ib_uverbs_flow_action_esp_encap, private::Bool = false)
+    (:val_ptr, :val_ptr_data_u64, :next_ptr, :next_ptr_data_u64, :len, :type, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct ib_uverbs_flow_action_esp
     data::NTuple{24, UInt8}
 end
@@ -501,6 +574,14 @@ end
 
 function Base.setproperty!(x::Ptr{ib_uverbs_flow_action_esp}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ib_uverbs_flow_action_esp, private::Bool = false)
+    (:spi, :seq, :tfc_pad, :flags, :hard_limit_pkts, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 @cenum ib_uverbs_read_counters_flags::UInt32 begin
@@ -587,6 +668,14 @@ function Base.setproperty!(x::Ptr{ib_uverbs_gid_entry}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ib_uverbs_gid_entry, private::Bool = false)
+    (:gid, :gid_index, :port_num, :gid_type, :netdev_ifindex, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 @cenum ibv_gid_type::UInt32 begin
     IBV_GID_TYPE_IB = 0
     IBV_GID_TYPE_ROCE_V1 = 1
@@ -615,6 +704,14 @@ end
 
 function Base.setproperty!(x::Ptr{ibv_gid_entry}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_gid_entry, private::Bool = false)
+    (:gid, :gid_index, :port_num, :gid_type, :ndev_ifindex, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 @cenum ibv_device_cap_flags::UInt32 begin
@@ -737,11 +834,29 @@ end
     IBV_ODP_SUPPORT_ATOMIC_WRITE = 128
 end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:249:2)"
+struct var"##Ctag#249"
     rc_odp_caps::UInt32
     uc_odp_caps::UInt32
     ud_odp_caps::UInt32
 end
+function Base.getproperty(x::Ptr{var"##Ctag#249"}, f::Symbol)
+    f === :rc_odp_caps && return Ptr{UInt32}(x + 0)
+    f === :uc_odp_caps && return Ptr{UInt32}(x + 4)
+    f === :ud_odp_caps && return Ptr{UInt32}(x + 8)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::var"##Ctag#249", f::Symbol)
+    r = Ref{var"##Ctag#249"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#249"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#249"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
 
 struct ibv_odp_caps
     data::NTuple{24, UInt8}
@@ -749,7 +864,7 @@ end
 
 function Base.getproperty(x::Ptr{ibv_odp_caps}, f::Symbol)
     f === :general_caps && return Ptr{UInt64}(x + 0)
-    f === :per_transport_caps && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:249:2)"}(x + 8)
+    f === :per_transport_caps && return Ptr{var"##Ctag#249"}(x + 8)
     return getfield(x, f)
 end
 
@@ -762,6 +877,14 @@ end
 
 function Base.setproperty!(x::Ptr{ibv_odp_caps}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_odp_caps, private::Bool = false)
+    (:general_caps, :per_transport_caps, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_tso_caps
@@ -872,6 +995,14 @@ function Base.setproperty!(x::Ptr{ibv_device_attr_ex}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_device_attr_ex, private::Bool = false)
+    (:orig_attr, :comp_mask, :odp_caps, :completion_timestamp_mask, :hca_core_clock, :device_cap_flags_ex, :tso_caps, :rss_caps, :max_wq_type_rq, :packet_pacing_caps, :raw_packet_caps, :tm_caps, :cq_mod_caps, :max_dm_size, :pci_atomic_caps, :xrc_odp_caps, :phys_port_cnt_ex, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 @cenum var"##Ctag#244"::UInt32 begin
     IBV_LINK_LAYER_UNSPECIFIED = 0
     IBV_LINK_LAYER_INFINIBAND = 1
@@ -939,11 +1070,11 @@ end
     IBV_EVENT_WQ_FATAL = 19
 end
 
-struct var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"
+struct var"##Ctag#251"
     data::NTuple{8, UInt8}
 end
 
-function Base.getproperty(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"}, f::Symbol)
+function Base.getproperty(x::Ptr{var"##Ctag#251"}, f::Symbol)
     f === :cq && return Ptr{Ptr{ibv_cq}}(x + 0)
     f === :qp && return Ptr{Ptr{ibv_qp}}(x + 0)
     f === :srq && return Ptr{Ptr{ibv_srq}}(x + 0)
@@ -952,15 +1083,23 @@ function Base.getproperty(x::Ptr{var"union (unnamed at /home/davidm/.julia/artif
     return getfield(x, f)
 end
 
-function Base.getproperty(x::var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)", f::Symbol)
-    r = Ref{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"}(x)
-    ptr = Base.unsafe_convert(Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"}, r)
+function Base.getproperty(x::var"##Ctag#251", f::Symbol)
+    r = Ref{var"##Ctag#251"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#251"}, r)
     fptr = getproperty(ptr, f)
     GC.@preserve r unsafe_load(fptr)
 end
 
-function Base.setproperty!(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"}, f::Symbol, v)
+function Base.setproperty!(x::Ptr{var"##Ctag#251"}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::var"##Ctag#251", private::Bool = false)
+    (:cq, :qp, :srq, :wq, :port_num, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_async_event
@@ -968,7 +1107,7 @@ struct ibv_async_event
 end
 
 function Base.getproperty(x::Ptr{ibv_async_event}, f::Symbol)
-    f === :element && return Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:477:2)"}(x + 0)
+    f === :element && return Ptr{var"##Ctag#251"}(x + 0)
     f === :event_type && return Ptr{ibv_event_type}(x + 8)
     return getfield(x, f)
 end
@@ -982,6 +1121,14 @@ end
 
 function Base.setproperty!(x::Ptr{ibv_async_event}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_async_event, private::Bool = false)
+    (:element, :event_type, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 @cenum ibv_wc_status::UInt32 begin
@@ -1108,6 +1255,14 @@ function Base.setproperty!(x::Ptr{ibv_wc}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_wc, private::Bool = false)
+    (:wr_id, :status, :opcode, :vendor_err, :byte_len, :imm_data, :invalidated_rkey, :qp_num, :src_qp, :wc_flags, :pkey_index, :slid, :sl, :dlid_path_bits, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 @cenum ibv_access_flags::UInt32 begin
     IBV_ACCESS_LOCAL_WRITE = 1
     IBV_ACCESS_REMOTE_WRITE = 2
@@ -1197,6 +1352,14 @@ function Base.setproperty!(x::Ptr{ibv_global_route}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_global_route, private::Bool = false)
+    (:dgid, :flow_label, :sgid_index, :hop_limit, :traffic_class, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct ibv_grh
     data::NTuple{40, UInt8}
 end
@@ -1220,6 +1383,14 @@ end
 
 function Base.setproperty!(x::Ptr{ibv_grh}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_grh, private::Bool = false)
+    (:version_tclass_flow, :paylen, :next_hdr, :hop_limit, :sgid, :dgid, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 @cenum ibv_rate::UInt32 begin
@@ -1291,6 +1462,14 @@ function Base.setproperty!(x::Ptr{ibv_ah_attr}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_ah_attr, private::Bool = false)
+    (:grh, :dlid, :sl, :src_path_bits, :static_rate, :is_global, :port_num, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 @cenum ibv_srq_attr_mask::UInt32 begin
     IBV_SRQ_MAX_WR = 1
     IBV_SRQ_LIMIT = 2
@@ -1334,15 +1513,39 @@ struct ibv_comp_channel
 end
 
 struct ibv_cq
-    context::Ptr{ibv_context}
-    channel::Ptr{ibv_comp_channel}
-    cq_context::Ptr{Cvoid}
-    handle::UInt32
-    cqe::Cint
-    mutex::pthread_mutex_t
-    cond::pthread_cond_t
-    comp_events_completed::UInt32
-    async_events_completed::UInt32
+    data::NTuple{128, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_cq}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :channel && return Ptr{Ptr{ibv_comp_channel}}(x + 8)
+    f === :cq_context && return Ptr{Ptr{Cvoid}}(x + 16)
+    f === :handle && return Ptr{UInt32}(x + 24)
+    f === :cqe && return Ptr{Cint}(x + 28)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 32)
+    f === :cond && return Ptr{pthread_cond_t}(x + 72)
+    f === :comp_events_completed && return Ptr{UInt32}(x + 120)
+    f === :async_events_completed && return Ptr{UInt32}(x + 124)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_cq, f::Symbol)
+    r = Ref{ibv_cq}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_cq}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_cq}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_cq, private::Bool = false)
+    (:context, :channel, :cq_context, :handle, :cqe, :mutex, :cond, :comp_events_completed, :async_events_completed, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_srq_init_attr_ex
@@ -1418,19 +1621,43 @@ end
 end
 
 struct ibv_wq
-    context::Ptr{ibv_context}
-    wq_context::Ptr{Cvoid}
-    pd::Ptr{ibv_pd}
-    cq::Ptr{ibv_cq}
-    wq_num::UInt32
-    handle::UInt32
-    state::ibv_wq_state
-    wq_type::ibv_wq_type
-    post_recv::Ptr{Cvoid}
-    mutex::pthread_mutex_t
-    cond::pthread_cond_t
-    events_completed::UInt32
-    comp_mask::UInt32
+    data::NTuple{152, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_wq}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :wq_context && return Ptr{Ptr{Cvoid}}(x + 8)
+    f === :pd && return Ptr{Ptr{ibv_pd}}(x + 16)
+    f === :cq && return Ptr{Ptr{ibv_cq}}(x + 24)
+    f === :wq_num && return Ptr{UInt32}(x + 32)
+    f === :handle && return Ptr{UInt32}(x + 36)
+    f === :state && return Ptr{ibv_wq_state}(x + 40)
+    f === :wq_type && return Ptr{ibv_wq_type}(x + 44)
+    f === :post_recv && return Ptr{Ptr{Cvoid}}(x + 48)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 56)
+    f === :cond && return Ptr{pthread_cond_t}(x + 96)
+    f === :events_completed && return Ptr{UInt32}(x + 144)
+    f === :comp_mask && return Ptr{UInt32}(x + 148)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_wq, f::Symbol)
+    r = Ref{ibv_wq}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_wq}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_wq}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_wq, private::Bool = false)
+    (:context, :wq_context, :pd, :cq, :wq_num, :handle, :state, :wq_type, :post_recv, :mutex, :cond, :events_completed, :comp_mask, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_rwq_ind_table_init_attr
@@ -1458,13 +1685,37 @@ struct ibv_qp_cap
 end
 
 struct ibv_srq
-    context::Ptr{ibv_context}
-    srq_context::Ptr{Cvoid}
-    pd::Ptr{ibv_pd}
-    handle::UInt32
-    mutex::pthread_mutex_t
-    cond::pthread_cond_t
-    events_completed::UInt32
+    data::NTuple{128, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_srq}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :srq_context && return Ptr{Ptr{Cvoid}}(x + 8)
+    f === :pd && return Ptr{Ptr{ibv_pd}}(x + 16)
+    f === :handle && return Ptr{UInt32}(x + 24)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 32)
+    f === :cond && return Ptr{pthread_cond_t}(x + 72)
+    f === :events_completed && return Ptr{UInt32}(x + 120)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_srq, f::Symbol)
+    r = Ref{ibv_srq}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_srq}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_srq}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_srq, private::Bool = false)
+    (:context, :srq_context, :pd, :handle, :mutex, :cond, :events_completed, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_qp_init_attr
@@ -1649,6 +1900,14 @@ function Base.setproperty!(x::Ptr{ibv_qp_attr}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_qp_attr, private::Bool = false)
+    (:qp_state, :cur_qp_state, :path_mtu, :path_mig_state, :qkey, :rq_psn, :sq_psn, :dest_qp_num, :qp_access_flags, :cap, :ah_attr, :alt_ah_attr, :pkey_index, :alt_pkey_index, :en_sqd_async_notify, :sq_draining, :max_rd_atomic, :max_dest_rd_atomic, :min_rnr_timer, :port_num, :timeout, :retry_cnt, :rnr_retry, :alt_port_num, :alt_timeout, :rate_limit, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct ibv_qp_rate_limit_attr
     rate_limit::UInt32
     max_burst_sz::UInt32
@@ -1711,46 +1970,62 @@ struct ibv_fd_arr
     count::UInt32
 end
 
-struct var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"
+struct var"##Ctag#254"
     data::NTuple{32, UInt8}
 end
 
-function Base.getproperty(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"}, f::Symbol)
-    f === :rdma && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1173:3)"}(x + 0)
-    f === :atomic && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1177:3)"}(x + 0)
-    f === :ud && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1183:3)"}(x + 0)
+function Base.getproperty(x::Ptr{var"##Ctag#254"}, f::Symbol)
+    f === :rdma && return Ptr{var"##Ctag#255"}(x + 0)
+    f === :atomic && return Ptr{var"##Ctag#256"}(x + 0)
+    f === :ud && return Ptr{var"##Ctag#257"}(x + 0)
     return getfield(x, f)
 end
 
-function Base.getproperty(x::var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)", f::Symbol)
-    r = Ref{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"}(x)
-    ptr = Base.unsafe_convert(Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"}, r)
+function Base.getproperty(x::var"##Ctag#254", f::Symbol)
+    r = Ref{var"##Ctag#254"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#254"}, r)
     fptr = getproperty(ptr, f)
     GC.@preserve r unsafe_load(fptr)
 end
 
-function Base.setproperty!(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"}, f::Symbol, v)
+function Base.setproperty!(x::Ptr{var"##Ctag#254"}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
-struct var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"
+function Base.propertynames(x::var"##Ctag#254", private::Bool = false)
+    (:rdma, :atomic, :ud, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
+struct var"##Ctag#258"
     data::NTuple{4, UInt8}
 end
 
-function Base.getproperty(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"}, f::Symbol)
-    f === :xrc && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1190:3)"}(x + 0)
+function Base.getproperty(x::Ptr{var"##Ctag#258"}, f::Symbol)
+    f === :xrc && return Ptr{var"##Ctag#259"}(x + 0)
     return getfield(x, f)
 end
 
-function Base.getproperty(x::var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)", f::Symbol)
-    r = Ref{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"}(x)
-    ptr = Base.unsafe_convert(Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"}, r)
+function Base.getproperty(x::var"##Ctag#258", f::Symbol)
+    r = Ref{var"##Ctag#258"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#258"}, r)
     fptr = getproperty(ptr, f)
     GC.@preserve r unsafe_load(fptr)
 end
 
-function Base.setproperty!(x::Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"}, f::Symbol, v)
+function Base.setproperty!(x::Ptr{var"##Ctag#258"}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::var"##Ctag#258", private::Bool = false)
+    (:xrc, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_send_wr
@@ -1766,8 +2041,8 @@ function Base.getproperty(x::Ptr{ibv_send_wr}, f::Symbol)
     f === :send_flags && return Ptr{Cuint}(x + 32)
     f === :imm_data && return Ptr{__be32}(x + 36)
     f === :invalidate_rkey && return Ptr{UInt32}(x + 36)
-    f === :wr && return Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1172:2)"}(x + 40)
-    f === :qp_type && return Ptr{var"union (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1189:2)"}(x + 72)
+    f === :wr && return Ptr{var"##Ctag#254"}(x + 40)
+    f === :qp_type && return Ptr{var"##Ctag#258"}(x + 72)
     f === :bind_mw && return Ptr{Cvoid}(x + 80)
     f === :tso && return Ptr{Cvoid}(x + 80)
     return getfield(x, f)
@@ -1782,6 +2057,14 @@ end
 
 function Base.setproperty!(x::Ptr{ibv_send_wr}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_send_wr, private::Bool = false)
+    (:wr_id, :next, :sg_list, :num_sge, :opcode, :send_flags, :imm_data, :invalidate_rkey, :wr, :qp_type, :bind_mw, :tso, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_recv_wr
@@ -1802,34 +2085,62 @@ end
     IBV_OPS_TM_SYNC = 2
 end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1234:3)"
+struct var"##Ctag#253"
     recv_wr_id::UInt64
     sg_list::Ptr{ibv_sge}
     num_sge::Cint
     tag::UInt64
     mask::UInt64
 end
-
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"
-    data::NTuple{48, UInt8}
-end
-
-function Base.getproperty(x::Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"}, f::Symbol)
-    f === :unexpected_cnt && return Ptr{UInt32}(x + 0)
-    f === :handle && return Ptr{UInt32}(x + 4)
-    f === :add && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1234:3)"}(x + 8)
+function Base.getproperty(x::Ptr{var"##Ctag#253"}, f::Symbol)
+    f === :recv_wr_id && return Ptr{UInt64}(x + 0)
+    f === :sg_list && return Ptr{Ptr{ibv_sge}}(x + 8)
+    f === :num_sge && return Ptr{Cint}(x + 16)
+    f === :tag && return Ptr{UInt64}(x + 24)
+    f === :mask && return Ptr{UInt64}(x + 32)
     return getfield(x, f)
 end
 
-function Base.getproperty(x::var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)", f::Symbol)
-    r = Ref{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"}(x)
-    ptr = Base.unsafe_convert(Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"}, r)
+function Base.getproperty(x::var"##Ctag#253", f::Symbol)
+    r = Ref{var"##Ctag#253"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#253"}, r)
     fptr = getproperty(ptr, f)
     GC.@preserve r unsafe_load(fptr)
 end
 
-function Base.setproperty!(x::Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"}, f::Symbol, v)
+function Base.setproperty!(x::Ptr{var"##Ctag#253"}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
+end
+
+
+struct var"##Ctag#252"
+    data::NTuple{48, UInt8}
+end
+
+function Base.getproperty(x::Ptr{var"##Ctag#252"}, f::Symbol)
+    f === :unexpected_cnt && return Ptr{UInt32}(x + 0)
+    f === :handle && return Ptr{UInt32}(x + 4)
+    f === :add && return Ptr{var"##Ctag#253"}(x + 8)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::var"##Ctag#252", f::Symbol)
+    r = Ref{var"##Ctag#252"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#252"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#252"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::var"##Ctag#252", private::Bool = false)
+    (:unexpected_cnt, :handle, :add, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_ops_wr
@@ -1841,7 +2152,7 @@ function Base.getproperty(x::Ptr{ibv_ops_wr}, f::Symbol)
     f === :next && return Ptr{Ptr{ibv_ops_wr}}(x + 8)
     f === :opcode && return Ptr{ibv_ops_wr_opcode}(x + 16)
     f === :flags && return Ptr{Cint}(x + 20)
-    f === :tm && return Ptr{var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1231:2)"}(x + 24)
+    f === :tm && return Ptr{Cvoid}(x + 24)
     return getfield(x, f)
 end
 
@@ -1856,6 +2167,14 @@ function Base.setproperty!(x::Ptr{ibv_ops_wr}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_ops_wr, private::Bool = false)
+    (:wr_id, :next, :opcode, :flags, :tm, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct ibv_mw_bind
     wr_id::UInt64
     send_flags::Cuint
@@ -1863,48 +2182,96 @@ struct ibv_mw_bind
 end
 
 struct ibv_qp
-    context::Ptr{ibv_context}
-    qp_context::Ptr{Cvoid}
-    pd::Ptr{ibv_pd}
-    send_cq::Ptr{ibv_cq}
-    recv_cq::Ptr{ibv_cq}
-    srq::Ptr{ibv_srq}
-    handle::UInt32
-    qp_num::UInt32
-    state::ibv_qp_state
-    qp_type::ibv_qp_type
-    mutex::pthread_mutex_t
-    cond::pthread_cond_t
-    events_completed::UInt32
+    data::NTuple{160, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_qp}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :qp_context && return Ptr{Ptr{Cvoid}}(x + 8)
+    f === :pd && return Ptr{Ptr{ibv_pd}}(x + 16)
+    f === :send_cq && return Ptr{Ptr{ibv_cq}}(x + 24)
+    f === :recv_cq && return Ptr{Ptr{ibv_cq}}(x + 32)
+    f === :srq && return Ptr{Ptr{ibv_srq}}(x + 40)
+    f === :handle && return Ptr{UInt32}(x + 48)
+    f === :qp_num && return Ptr{UInt32}(x + 52)
+    f === :state && return Ptr{ibv_qp_state}(x + 56)
+    f === :qp_type && return Ptr{ibv_qp_type}(x + 60)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 64)
+    f === :cond && return Ptr{pthread_cond_t}(x + 104)
+    f === :events_completed && return Ptr{UInt32}(x + 152)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_qp, f::Symbol)
+    r = Ref{ibv_qp}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_qp}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_qp}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_qp, private::Bool = false)
+    (:context, :qp_context, :pd, :send_cq, :recv_cq, :srq, :handle, :qp_num, :state, :qp_type, :mutex, :cond, :events_completed, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 struct ibv_qp_ex
-    qp_base::ibv_qp
-    comp_mask::UInt64
-    wr_id::UInt64
-    wr_flags::Cuint
-    wr_atomic_cmp_swp::Ptr{Cvoid}
-    wr_atomic_fetch_add::Ptr{Cvoid}
-    wr_bind_mw::Ptr{Cvoid}
-    wr_local_inv::Ptr{Cvoid}
-    wr_rdma_read::Ptr{Cvoid}
-    wr_rdma_write::Ptr{Cvoid}
-    wr_rdma_write_imm::Ptr{Cvoid}
-    wr_send::Ptr{Cvoid}
-    wr_send_imm::Ptr{Cvoid}
-    wr_send_inv::Ptr{Cvoid}
-    wr_send_tso::Ptr{Cvoid}
-    wr_set_ud_addr::Ptr{Cvoid}
-    wr_set_xrc_srqn::Ptr{Cvoid}
-    wr_set_inline_data::Ptr{Cvoid}
-    wr_set_inline_data_list::Ptr{Cvoid}
-    wr_set_sge::Ptr{Cvoid}
-    wr_set_sge_list::Ptr{Cvoid}
-    wr_start::Ptr{Cvoid}
-    wr_complete::Ptr{Cvoid}
-    wr_abort::Ptr{Cvoid}
-    wr_atomic_write::Ptr{Cvoid}
-    wr_flush::Ptr{Cvoid}
+    data::NTuple{360, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_qp_ex}, f::Symbol)
+    f === :qp_base && return Ptr{ibv_qp}(x + 0)
+    f === :comp_mask && return Ptr{UInt64}(x + 160)
+    f === :wr_id && return Ptr{UInt64}(x + 168)
+    f === :wr_flags && return Ptr{Cuint}(x + 176)
+    f === :wr_atomic_cmp_swp && return Ptr{Ptr{Cvoid}}(x + 184)
+    f === :wr_atomic_fetch_add && return Ptr{Ptr{Cvoid}}(x + 192)
+    f === :wr_bind_mw && return Ptr{Ptr{Cvoid}}(x + 200)
+    f === :wr_local_inv && return Ptr{Ptr{Cvoid}}(x + 208)
+    f === :wr_rdma_read && return Ptr{Ptr{Cvoid}}(x + 216)
+    f === :wr_rdma_write && return Ptr{Ptr{Cvoid}}(x + 224)
+    f === :wr_rdma_write_imm && return Ptr{Ptr{Cvoid}}(x + 232)
+    f === :wr_send && return Ptr{Ptr{Cvoid}}(x + 240)
+    f === :wr_send_imm && return Ptr{Ptr{Cvoid}}(x + 248)
+    f === :wr_send_inv && return Ptr{Ptr{Cvoid}}(x + 256)
+    f === :wr_send_tso && return Ptr{Ptr{Cvoid}}(x + 264)
+    f === :wr_set_ud_addr && return Ptr{Ptr{Cvoid}}(x + 272)
+    f === :wr_set_xrc_srqn && return Ptr{Ptr{Cvoid}}(x + 280)
+    f === :wr_set_inline_data && return Ptr{Ptr{Cvoid}}(x + 288)
+    f === :wr_set_inline_data_list && return Ptr{Ptr{Cvoid}}(x + 296)
+    f === :wr_set_sge && return Ptr{Ptr{Cvoid}}(x + 304)
+    f === :wr_set_sge_list && return Ptr{Ptr{Cvoid}}(x + 312)
+    f === :wr_start && return Ptr{Ptr{Cvoid}}(x + 320)
+    f === :wr_complete && return Ptr{Ptr{Cvoid}}(x + 328)
+    f === :wr_abort && return Ptr{Ptr{Cvoid}}(x + 336)
+    f === :wr_atomic_write && return Ptr{Ptr{Cvoid}}(x + 344)
+    f === :wr_flush && return Ptr{Ptr{Cvoid}}(x + 352)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_qp_ex, f::Symbol)
+    r = Ref{ibv_qp_ex}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_qp_ex}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_qp_ex}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_qp_ex, private::Bool = false)
+    (:qp_base, :comp_mask, :wr_id, :wr_flags, :wr_atomic_cmp_swp, :wr_atomic_fetch_add, :wr_bind_mw, :wr_local_inv, :wr_rdma_read, :wr_rdma_write, :wr_rdma_write_imm, :wr_send, :wr_send_imm, :wr_send_inv, :wr_send_tso, :wr_set_ud_addr, :wr_set_xrc_srqn, :wr_set_inline_data, :wr_set_inline_data_list, :wr_set_sge, :wr_set_sge_list, :wr_start, :wr_complete, :wr_abort, :wr_atomic_write, :wr_flush, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 function ibv_qp_to_qp_ex(qp)
@@ -2021,36 +2388,60 @@ struct ibv_wc_tm_info
 end
 
 struct ibv_cq_ex
-    context::Ptr{ibv_context}
-    channel::Ptr{ibv_comp_channel}
-    cq_context::Ptr{Cvoid}
-    handle::UInt32
-    cqe::Cint
-    mutex::pthread_mutex_t
-    cond::pthread_cond_t
-    comp_events_completed::UInt32
-    async_events_completed::UInt32
-    comp_mask::UInt32
-    status::ibv_wc_status
-    wr_id::UInt64
-    start_poll::Ptr{Cvoid}
-    next_poll::Ptr{Cvoid}
-    end_poll::Ptr{Cvoid}
-    read_opcode::Ptr{Cvoid}
-    read_vendor_err::Ptr{Cvoid}
-    read_byte_len::Ptr{Cvoid}
-    read_imm_data::Ptr{Cvoid}
-    read_qp_num::Ptr{Cvoid}
-    read_src_qp::Ptr{Cvoid}
-    read_wc_flags::Ptr{Cvoid}
-    read_slid::Ptr{Cvoid}
-    read_sl::Ptr{Cvoid}
-    read_dlid_path_bits::Ptr{Cvoid}
-    read_completion_ts::Ptr{Cvoid}
-    read_cvlan::Ptr{Cvoid}
-    read_flow_tag::Ptr{Cvoid}
-    read_tm_info::Ptr{Cvoid}
-    read_completion_wallclock_ns::Ptr{Cvoid}
+    data::NTuple{288, UInt8}
+end
+
+function Base.getproperty(x::Ptr{ibv_cq_ex}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :channel && return Ptr{Ptr{ibv_comp_channel}}(x + 8)
+    f === :cq_context && return Ptr{Ptr{Cvoid}}(x + 16)
+    f === :handle && return Ptr{UInt32}(x + 24)
+    f === :cqe && return Ptr{Cint}(x + 28)
+    f === :mutex && return Ptr{pthread_mutex_t}(x + 32)
+    f === :cond && return Ptr{pthread_cond_t}(x + 72)
+    f === :comp_events_completed && return Ptr{UInt32}(x + 120)
+    f === :async_events_completed && return Ptr{UInt32}(x + 124)
+    f === :comp_mask && return Ptr{UInt32}(x + 128)
+    f === :status && return Ptr{ibv_wc_status}(x + 132)
+    f === :wr_id && return Ptr{UInt64}(x + 136)
+    f === :start_poll && return Ptr{Ptr{Cvoid}}(x + 144)
+    f === :next_poll && return Ptr{Ptr{Cvoid}}(x + 152)
+    f === :end_poll && return Ptr{Ptr{Cvoid}}(x + 160)
+    f === :read_opcode && return Ptr{Ptr{Cvoid}}(x + 168)
+    f === :read_vendor_err && return Ptr{Ptr{Cvoid}}(x + 176)
+    f === :read_byte_len && return Ptr{Ptr{Cvoid}}(x + 184)
+    f === :read_imm_data && return Ptr{Ptr{Cvoid}}(x + 192)
+    f === :read_qp_num && return Ptr{Ptr{Cvoid}}(x + 200)
+    f === :read_src_qp && return Ptr{Ptr{Cvoid}}(x + 208)
+    f === :read_wc_flags && return Ptr{Ptr{Cvoid}}(x + 216)
+    f === :read_slid && return Ptr{Ptr{Cvoid}}(x + 224)
+    f === :read_sl && return Ptr{Ptr{Cvoid}}(x + 232)
+    f === :read_dlid_path_bits && return Ptr{Ptr{Cvoid}}(x + 240)
+    f === :read_completion_ts && return Ptr{Ptr{Cvoid}}(x + 248)
+    f === :read_cvlan && return Ptr{Ptr{Cvoid}}(x + 256)
+    f === :read_flow_tag && return Ptr{Ptr{Cvoid}}(x + 264)
+    f === :read_tm_info && return Ptr{Ptr{Cvoid}}(x + 272)
+    f === :read_completion_wallclock_ns && return Ptr{Ptr{Cvoid}}(x + 280)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::ibv_cq_ex, f::Symbol)
+    r = Ref{ibv_cq_ex}(x)
+    ptr = Base.unsafe_convert(Ptr{ibv_cq_ex}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{ibv_cq_ex}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+function Base.propertynames(x::ibv_cq_ex, private::Bool = false)
+    (:context, :channel, :cq_context, :handle, :cqe, :mutex, :cond, :comp_events_completed, :async_events_completed, :comp_mask, :status, :wr_id, :start_poll, :next_poll, :end_poll, :read_opcode, :read_vendor_err, :read_byte_len, :read_imm_data, :read_qp_num, :read_src_qp, :read_wc_flags, :read_slid, :read_sl, :read_dlid_path_bits, :read_completion_ts, :read_cvlan, :read_flow_tag, :read_tm_info, :read_completion_wallclock_ns, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
 end
 
 function ibv_cq_ex_to_cq(cq)
@@ -2363,6 +2754,14 @@ function Base.setproperty!(x::Ptr{ibv_flow_spec}, f::Symbol, v)
     unsafe_store!(getproperty(x, f), v)
 end
 
+function Base.propertynames(x::ibv_flow_spec, private::Bool = false)
+    (:hdr, :eth, :ipv4, :tcp_udp, :ipv4_ext, :ipv6, :esp, :tunnel, :gre, :mpls, :flow_tag, :drop, :handle, :flow_count, if private
+            fieldnames(typeof(x))
+        else
+            ()
+        end...)
+end
+
 struct ibv_flow_attr
     comp_mask::UInt32
     type::ibv_flow_attr_type
@@ -2571,14 +2970,6 @@ function ibv_dealloc_pd(pd)
     ccall((:ibv_dealloc_pd, libibverbs), Cint, (Ptr{ibv_pd},), pd)
 end
 
-function ibv_create_flow(qp, flow)
-    ccall((:ibv_create_flow, libibverbs), Ptr{ibv_flow}, (Ptr{ibv_qp}, Ptr{ibv_flow_attr}), qp, flow)
-end
-
-function ibv_destroy_flow(flow_id)
-    ccall((:ibv_destroy_flow, libibverbs), Cint, (Ptr{ibv_flow},), flow_id)
-end
-
 function ibv_create_flow_action_esp(ctx, esp)
     ccall((:ibv_create_flow_action_esp, libibverbs), Ptr{ibv_flow_action}, (Ptr{ibv_context}, Ptr{ibv_flow_action_esp_attr}), ctx, esp)
 end
@@ -2699,6 +3090,10 @@ function ibv_ack_cq_events(cq, nevents)
     ccall((:ibv_ack_cq_events, libibverbs), Cvoid, (Ptr{ibv_cq}, Cuint), cq, nevents)
 end
 
+function ibv_modify_cq(cq, attr)
+    ccall((:ibv_modify_cq, libibverbs), Cint, (Ptr{ibv_cq}, Ptr{ibv_modify_cq_attr}), cq, attr)
+end
+
 function ibv_create_srq(pd, srq_init_attr)
     ccall((:ibv_create_srq, libibverbs), Ptr{ibv_srq}, (Ptr{ibv_pd}, Ptr{ibv_srq_init_attr}), pd, srq_init_attr)
 end
@@ -2807,10 +3202,6 @@ function ibv_post_send(qp, wr, bad_wr)
     ccall((:ibv_post_send, libibverbs), Cint, (Ptr{ibv_qp}, Ptr{ibv_send_wr}, Ptr{Ptr{ibv_send_wr}}), qp, wr, bad_wr)
 end
 
-function ibv_post_recv(qp, wr, bad_wr)
-    ccall((:ibv_post_recv, libibverbs), Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
-end
-
 function ibv_create_ah(pd, attr)
     ccall((:ibv_create_ah, libibverbs), Ptr{ibv_ah}, (Ptr{ibv_pd}, Ptr{ibv_ah_attr}), pd, attr)
 end
@@ -2891,10 +3282,27 @@ function ibv_query_ece(qp, ece)
     ccall((:ibv_query_ece, libibverbs), Cint, (Ptr{ibv_qp}, Ptr{ibv_ece}), qp, ece)
 end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:67:2)"
+struct var"##Ctag#250"
     subnet_prefix::__be64
     interface_id::__be64
 end
+function Base.getproperty(x::Ptr{var"##Ctag#250"}, f::Symbol)
+    f === :subnet_prefix && return Ptr{__be64}(x + 0)
+    f === :interface_id && return Ptr{__be64}(x + 8)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::var"##Ctag#250", f::Symbol)
+    r = Ref{var"##Ctag#250"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#250"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#250"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
 
 struct __pthread_mutex_s
     __lock::Cint
@@ -2906,29 +3314,99 @@ struct __pthread_mutex_s
     __list::__pthread_list_t
 end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1173:3)"
+struct var"##Ctag#255"
     remote_addr::UInt64
     rkey::UInt32
 end
+function Base.getproperty(x::Ptr{var"##Ctag#255"}, f::Symbol)
+    f === :remote_addr && return Ptr{UInt64}(x + 0)
+    f === :rkey && return Ptr{UInt32}(x + 8)
+    return getfield(x, f)
+end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1177:3)"
+function Base.getproperty(x::var"##Ctag#255", f::Symbol)
+    r = Ref{var"##Ctag#255"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#255"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#255"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+
+struct var"##Ctag#256"
     remote_addr::UInt64
     compare_add::UInt64
     swap::UInt64
     rkey::UInt32
 end
+function Base.getproperty(x::Ptr{var"##Ctag#256"}, f::Symbol)
+    f === :remote_addr && return Ptr{UInt64}(x + 0)
+    f === :compare_add && return Ptr{UInt64}(x + 8)
+    f === :swap && return Ptr{UInt64}(x + 16)
+    f === :rkey && return Ptr{UInt32}(x + 24)
+    return getfield(x, f)
+end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1183:3)"
+function Base.getproperty(x::var"##Ctag#256", f::Symbol)
+    r = Ref{var"##Ctag#256"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#256"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#256"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+
+struct var"##Ctag#257"
     ah::Ptr{ibv_ah}
     remote_qpn::UInt32
     remote_qkey::UInt32
 end
-
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/404b21a31d8b64fef8960ea1f4f6d1a2773799fc/include/infiniband/verbs.h:1190:3)"
-    remote_srqn::UInt32
+function Base.getproperty(x::Ptr{var"##Ctag#257"}, f::Symbol)
+    f === :ah && return Ptr{Ptr{ibv_ah}}(x + 0)
+    f === :remote_qpn && return Ptr{UInt32}(x + 8)
+    f === :remote_qkey && return Ptr{UInt32}(x + 12)
+    return getfield(x, f)
 end
 
-struct var"struct (unnamed at /home/davidm/.julia/artifacts/305c8b171016c46dfbb8ca234a543a99b6e3d045/x86_64-linux-gnu/sys-root/usr/include/bits/pthreadtypes.h:117:3)"
+function Base.getproperty(x::var"##Ctag#257", f::Symbol)
+    r = Ref{var"##Ctag#257"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#257"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#257"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+
+struct var"##Ctag#259"
+    remote_srqn::UInt32
+end
+function Base.getproperty(x::Ptr{var"##Ctag#259"}, f::Symbol)
+    f === :remote_srqn && return Ptr{UInt32}(x + 0)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::var"##Ctag#259", f::Symbol)
+    r = Ref{var"##Ctag#259"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#259"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#259"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
+
+struct var"##Ctag#260"
     __lock::Cint
     __futex::Cuint
     __total_seq::Culonglong
@@ -2938,6 +3416,29 @@ struct var"struct (unnamed at /home/davidm/.julia/artifacts/305c8b171016c46dfbb8
     __nwaiters::Cuint
     __broadcast_seq::Cuint
 end
+function Base.getproperty(x::Ptr{var"##Ctag#260"}, f::Symbol)
+    f === :__lock && return Ptr{Cint}(x + 0)
+    f === :__futex && return Ptr{Cuint}(x + 4)
+    f === :__total_seq && return Ptr{Culonglong}(x + 8)
+    f === :__wakeup_seq && return Ptr{Culonglong}(x + 16)
+    f === :__woken_seq && return Ptr{Culonglong}(x + 24)
+    f === :__mutex && return Ptr{Ptr{Cvoid}}(x + 32)
+    f === :__nwaiters && return Ptr{Cuint}(x + 40)
+    f === :__broadcast_seq && return Ptr{Cuint}(x + 44)
+    return getfield(x, f)
+end
+
+function Base.getproperty(x::var"##Ctag#260", f::Symbol)
+    r = Ref{var"##Ctag#260"}(x)
+    ptr = Base.unsafe_convert(Ptr{var"##Ctag#260"}, r)
+    fptr = getproperty(ptr, f)
+    GC.@preserve r unsafe_load(fptr)
+end
+
+function Base.setproperty!(x::Ptr{var"##Ctag#260"}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
 
 const IB_UVERBS_ACCESS_OPTIONAL_FIRST = 1 << 20
 
@@ -3015,38 +3516,132 @@ const IB_ROCE_UDP_ENCAP_VALID_PORT_MAX = 0xffff
 
 const IB_GRH_FLOWLABEL_MASK = 0x000fffff
 
-# ibv_query port
-
 export ibv_query_port
-
 function ibv_query_port(context, port_num, port_attr)
     ccall((:ibv_query_port, libibverbs), Cint, (Ptr{ibv_context}, UInt8, Ptr{ibv_port_attr}), context, port_num, port_attr)
 end
 
-# Functions that are static inline in verbs.h
+export ibv_reg_mr
+function ibv_reg_mr(pd, addr, length, access)
+    ccall((:ibv_reg_mr, libibverbs), Ptr{ibv_mr}, (Ptr{ibv_pd}, Ptr{Cvoid}, Csize_t, Cuint), pd, addr, length, access)
+end
 
+# Functions that are static inline in verbs.h have no implementation (and
+# therefore no symbol for `dlsym` to find) in the shared library.
+
+#=
+## Clang 0.18
 # Get ibv_context_ops struct from an Ptr{ibv_context}
 function get_ibv_context_op(ctx::Ptr{ibv_context}, op::Symbol)
     op_offset = fieldoffset(ibv_context_ops, findfirst(==(op), fieldnames(ibv_context_ops)))
     unsafe_load(Ptr{Ptr{Cvoid}}(ctx + fieldoffset(ibv_context, 2) + op_offset))
 end
 
+# Get ibv_context_ops struct from an Ptr{ibv_cq} via the the ibv_context pointer
+# in cq's first field.
 function get_ibv_context_op(cq::Ptr{ibv_cq}, op::Symbol)
     ctx = unsafe_load(Ptr{Ptr{ibv_context}}(cq))
     get_ibv_context_op(ctx, op)
 end
+=#
+
+## Clang 0.19
+get_context_op(ctx::Ptr{ibv_context}, op::Symbol) = GC.@preserve ctx getproperty(unsafe_load(ctx.ops), op)
+get_context_op(cq::Ptr{ibv_cq}, op::Symbol) = GC.@preserve cq get_context_op(unsafe_load(cq.context), op)
+get_context_op(qp::Ptr{ibv_qp}, op::Symbol) = GC.@preserve qp get_context_op(unsafe_load(qp.context), op)
+
+# NOT exported
+function verbs_get_ctx(ctx::Ptr{ibv_context})::Ptr{verbs_context}
+	if unsafe_load(ctx.abi_compat) != __VERBS_ABI_IS_EXTENDED
+		return C_NULL
+    end
+
+    # This is a variation of the verbs.h code.  The verbs.h implementation
+    # subtracts the offset of the ibv_context struct within the verbs_context
+    # struct.  Because verbs_context and ibv_context are "synthetic" structs
+    # (i.e. they just contain a single `NTuple{N,UInt8}` member) we can't use
+    # fieldoffset() to determine this offset.  Instead we rely on the comment in
+    # verbs.h that the ibv_context struct pointed to by `ctx` "must be" the last
+    # field in the verbs_context structure.  This allows us to compute the
+    # offset by subtracting sizeof(ibv_context) from sizeof(verbs_context).
+	ctx - (sizeof(verbs_context) - sizeof(ibv_context))
+end
+
+# NOT exported
+"""
+    verbs_get_ctx_op(ctx::Ptr{ibv_context}, op::Symbol)::Ptr{verbs_context}
+
+Return `Ptr{verbs_context}` if `ctx` is part of a `verbs_context` struct and the
+verbs_context struct has a field for `op` and that field is non-NULL.
+Otherwise, return Ptr{verbs_context}(C_NULL).
+"""
+function verbs_get_ctx_op(ctx::Ptr{ibv_context}, op::Symbol)::Ptr{verbs_context}
+	vctx = verbs_get_ctx(ctx)
+    vctx == C_NULL && return C_NULL # Not part of a verbs_context
+
+    op_ptr = try
+        getproperty(vctx, op)
+    catch
+        C_NULL
+    end
+
+    op_ptr == C_NULL && return C_NULL # Unknown op
+    unsafe_load(op_ptr) == C_NULL && return C_NULL # Unsupported but known op
+	return vctx # vctx with valid op property
+end
 
 export ibv_poll_cq
-
 function ibv_poll_cq(cq, num_entries, wc)
-    ccall(get_ibv_context_op(cq, :poll_cq), Cint, (Ptr{ibv_cq}, Cint, Ptr{ibv_wc}), cq, num_entries, wc)
+    ccall(get_context_op(cq, :poll_cq), Cint, (Ptr{ibv_cq}, Cint, Ptr{ibv_wc}), cq, num_entries, wc)
 end
 
 export ibv_req_notify_cq
-
 function ibv_req_notify_cq(cq, solicited_only)
-    ccall(get_ibv_context_op(cq, :req_notify_cq), Cint, (Ptr{ibv_cq}, Cint), cq, solicited_only)
+    ccall(get_context_op(cq, :req_notify_cq), Cint, (Ptr{ibv_cq}, Cint), cq, solicited_only)
 end
+
+export ibv_post_recv
+function ibv_post_recv(qp, wr, bad_wr)
+    ccall(get_context_op(qp, :post_recv), Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
+end
+
+export ibv_create_flow
+function ibv_create_flow(qp, flow)
+
+	vctx = verbs_get_ctx_op(unsafe_load(qp.context), :ibv_create_flow)
+	if vctx == C_NULL
+		Libc.errno = Libc.EOPNOTSUPP
+		return C_NULL
+    end
+
+    # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
+    ccall(unsafe_load(vctx.ibv_create_flow), Ptr{ibv_flow}, (Ptr{ibv_qp}, Ptr{ibv_flow_attr}), qp, flow)
+end
+
+export ibv_destroy_flow
+function ibv_destroy_flow(flow_id)
+
+	vctx = verbs_get_ctx_op(unsafe_load(flow_id.context), :ibv_destroy_flow)
+	vctx == C_NULL && return Libc.EOPNOTSUPP
+
+    # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
+    ccall(unsafe_load(vctx.ibv_destroy_flow), Cint, (Ptr{ibv_flow},), flow_id)
+end
+
+# Pseudo-kwarg constructors
+
+function synthentic_constructor(::Type{T}; kwargs...) where T
+    ref = Ref(reinterpret(T, ntuple(_->0x00, Base.packedsize(T))))
+    GC.@preserve ref begin
+        ptr = Base.unsafe_convert(Ptr{T}, ref)
+        for (f,v) in kwargs
+            setproperty!(ptr, f, v)
+        end
+    end
+    ref
+end
+
+ibv_qp_attr(; kwargs...) = synthentic_constructor(ibv_qp_attr; kwargs...)
 
 #= TODO
 export ibv_modify_cq

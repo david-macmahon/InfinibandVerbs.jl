@@ -9,8 +9,12 @@ export_symbol_prefixes = ["IBV", "ibv_"]
 output_ignorelist = [
     "ETH_ALEN",
     "___ibv_query_port",
+    "__ibv_reg_mr",
     "ibv_gid",
     "ibv_poll_cq",
     "ibv_req_notify_cq",
-    "ibv_modify_cq"
+    "ibv_post_recv",
+    "ibv_create_flow",
+    "ibv_destroy_flow",
+#    "ibv_modify_cq"
 ]
