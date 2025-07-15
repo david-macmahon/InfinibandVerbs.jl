@@ -1,3 +1,4 @@
+using InfinibandVerbs
 using InfinibandVerbs.API
 
 # Get device list
@@ -74,16 +75,7 @@ mr == C_NULL && throw(SystemError("ibv_reg_mr"))
 lkey = unsafe_load(mr).lkey
 
 # Create sniffer flow
-sniffer_flow_attr = Ref(ibv_flow_attr(
-    0,                     # comp_mask
-    IBV_FLOW_ATTR_SNIFFER, # type
-    sizeof(ibv_flow_attr), # size
-    0,                     # priority
-    0,                     # num_of_specs
-    port_num,              # port
-    0                      # flags
-))
-sniffer_flow = ibv_create_flow(qp, sniffer_flow_attr)
+sniffer_flow = create_flow(qp, port_num; flow_type=:sniffer)
 
 # Initialize work requests and scatter/gather fields
 #
