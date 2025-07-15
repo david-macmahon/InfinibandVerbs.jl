@@ -103,7 +103,7 @@ end
 export ibv_destroy_flow
 function ibv_destroy_flow(flow_id)
 
-	vctx = verbs_get_ctx_op(unsafe_load(flow_id.context), :ibv_destroy_flow)
+	vctx = verbs_get_ctx_op(unsafe_load(flow_id).context, :ibv_destroy_flow)
 	vctx == C_NULL && return Libc.EOPNOTSUPP
 
     # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
