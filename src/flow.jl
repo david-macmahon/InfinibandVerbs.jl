@@ -1,5 +1,3 @@
-using .API
-
 struct FlowRule
     attr::ibv_flow_attr
     spec_eth::ibv_flow_spec_eth

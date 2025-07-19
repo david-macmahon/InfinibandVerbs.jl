@@ -4,6 +4,7 @@ export create_flow
 
 # Include Clang-generated API wrappers
 include("api.jl")
+using .API
 
 # Misc utility functions
 include("utils.jl")
