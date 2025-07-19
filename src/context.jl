@@ -1,0 +1,215 @@
+struct Context
+    context::Ptr{ibv_context}
+    pd::Ptr{ibv_pd}
+
+    recv_comp_channel::Ptr{ibv_comp_channel}
+    send_comp_channel::Ptr{ibv_comp_channel}
+
+    recv_cq::Ptr{ibv_cq}
+    send_cq::Ptr{ibv_cq}
+
+    qp::Ptr{ibv_qp}
+
+    max_send_wr::UInt32
+    max_recv_wr::UInt32
+    max_send_sge::UInt32
+    max_recv_sge::UInt32
+    max_inline_data::UInt32
+
+    send_wcs::Vector{ibv_wc}
+    recv_wcs::Vector{ibv_wc}
+end
+
+"""
+    Context(dev_name, port_num; <kwargs>)
+
+Create a `Context` object to use InfinibandVerbs on `port_num` of `dev_name`.
+
+Create various InfinibandVerbs objects and return them in a `Context` instance.
+Keyword arguments, described in the extended help, control various aspects of
+the created objects.
+
+This `Context` constructor creates the following libibverbs objects:
+
+- `context::Ptr{ibv_context}` - Context
+- `pd::Ptr{ibv_pd}` - Protection domain
+- `recv_comp_channel::Ptr{ibv_comp_channel}` - Receive completion channel
+- `send_comp_channel::Ptr{ibv_comp_channel}` - send completion channel
+- `recv_cq::Ptr{ibv_cq}` - Receive completion queue
+- `send_cq::Ptr{ibv_cq}` - Send completion queue
+- `qp::Ptr{ibv_qp}` - Queue pair
+
+Completion notifications on `send_cq` or `recv_cq` are not requested by this
+constructor, but the caller may request them using the `context` field of the
+returned `Context` object, if desired.  Upon successful return, the queue pair
+will be in the `IBV_QPS_INIT` state.
+
+# Extended help
+
+The following keyword arguments can be used to control various sizing aspects of
+the created objects.  They default to 1 if not specified.  Set to -1 to use the
+device's maximum supported value.  The actual QP values for the `max_...`
+keyword arguments will be stored in the returned `Context` object.  These QP
+values will be greater than or equal to the requested values.
+
+- `send_cqe`, `recv_cqe`: Sizing for send/recev completion queues
+- `max_send_wr`, `max_recv_wr`: Sizing for send/receive queues
+- `max_send_sge`, `max_recv_sge`: max SGE for send/receive WR sg_lists
+
+Expert mode (change at your own risk)
+
+- comp_vector=0: TODO make separate send/recv comp_vectors?
+- max_inline_data=0
+- qp_type=IBV_QPT_RAW_PACKET
+
+"""
+function Context(dev_name, port_num;
+    send_cqe=1, recv_cqe=1, # sizing for send/recv completion queues
+    max_send_wr=1, max_recv_wr=1, # sizing for send/recv queues
+    max_send_sge=1, max_recv_sge=1, # sizing for SGE for send/recv WR sg_lists
+    # Below here is best left unchanged
+    comp_vector=0, # TODO make separate send/recv comp_vectors?
+    max_inline_data=0,
+    qp_type=IBV_QPT_RAW_PACKET
+)
+    # Open device
+    context = open_device_by_name(dev_name)
+
+    # Query device if any sizing parameters are given as -1
+    if send_cqe == -1 || recv_cqe == -1 ||
+            max_send_wr  == -1 || max_recv_wr  == -1 ||
+            max_send_sge == -1 || max_recv_sge == -1
+            
+        device_attr = Ref{ibv_device_attr}()
+        errno = ibv_query_device(context, device_attr)
+        errno == 0 || throw(SystemError("ibv_query_device", errno))
+
+        # In practice, using max_cqe directly fails with "Cannot allocate
+        # memory" error.  Using max_cqe÷sizeof(Ptr) works.  Using
+        # max_cqe÷sizeof(Ptr)+1 fails.  Maybe it was just a bug/feature of the
+        # hardware/driver used in development?  Maybe we should just set
+        # send_cqe/recv_cqe to `max_qp_wr` instead?
+        send_cqe == -1 && (send_cqe = device_attr[].max_cqe÷sizeof(Ptr))
+        recv_cqe == -1 && (recv_cqe = device_attr[].max_cqe÷sizeof(Ptr))
+        max_send_wr == -1 && (max_send_wr = device_attr[].max_qp_wr)
+        max_recv_wr == -1 && (max_recv_wr = device_attr[].max_qp_wr)
+        max_send_sge == -1 && (max_send_sge = device_attr[].max_sge)
+        max_recv_sge == -1 && (max_recv_sge = device_attr[].max_sge)
+    end
+
+    # Create protection domain (aka PD)
+    pd = ibv_alloc_pd(context)
+    pd == C_NULL && throw(SystemError("ibv_alloc_pd"))
+
+    # Create send/receive completion channels
+    # TODO Make fd non-blocking with fcntl or ioctl???
+    send_comp_channel = ibv_create_comp_channel(context)
+    send_comp_channel == C_NULL && throw(SystemError("ibv_create_comp_channel [send]"))
+    recv_comp_channel = ibv_create_comp_channel(context)
+    recv_comp_channel == C_NULL && throw(SystemError("ibv_create_comp_channel [recv]"))
+
+    # Create send/receive completion queues
+    send_cq = ibv_create_cq(context, send_cqe, C_NULL, send_comp_channel, comp_vector)
+    send_cq == C_NULL && throw(SystemError("ibv_create_cq [send]"))
+    recv_cq = ibv_create_cq(context, recv_cqe, C_NULL, recv_comp_channel, comp_vector)
+    recv_cq == C_NULL && throw(SystemError("ibv_create_cq [recv]"))
+
+    # Create queue pair (aka QP, starts in RESET state)
+    qpinitattr = Ref(ibv_qp_init_attr(
+        context,              # .qp_context
+        send_cq,              # .send_cq
+        recv_cq,              # .recv_cq
+        C_NULL,               # .srq
+        ibv_qp_cap(           # .cap
+            max_send_wr,      # .cap.max_send_wr
+            max_recv_wr,      # .cap.max_recv_wr
+            max_send_sge,     # .cap.max_send_sge
+            max_recv_sge,     # .cap.max_recv_sge
+            max_inline_data), # .cap.max_inline_data
+        qp_type,              # .qp_type
+        true                  # .sq_sig_all
+    ))
+
+    qp = ibv_create_qp(pd, qpinitattr)
+    qp == C_NULL && throw(SystemError("ibv_create_qp"))
+
+    # Allocate send/recv work completions
+    send_wcs = Vector{ibv_wc}(undef, send_cqe)
+    fill!(reinterpret(UInt8, send_wcs), 0)
+    recv_wcs = Vector{ibv_wc}(undef, recv_cqe)
+    fill!(reinterpret(UInt8, recv_wcs), 0)
+
+    # Transition QP to INIT state
+    qp_state = IBV_QPS_INIT
+    qp_attr = ibv_qp_attr(; qp_state, port_num)
+    errno = ibv_modify_qp(qp, qp_attr, IBV_QP_STATE|IBV_QP_PORT)
+    errno == 0 || throw(SystemError("ibv_modify_qp", errno))
+
+     Context(context, pd,
+        recv_comp_channel, send_comp_channel,
+        recv_cq, send_cq,
+        qp,
+        qpinitattr[].cap.max_send_wr, qpinitattr[].cap.max_recv_wr,
+        qpinitattr[].cap.max_send_sge, qpinitattr[].cap.max_recv_sge,
+        qpinitattr[].cap.max_inline_data,
+        send_wcs, recv_wcs
+    )
+end
+
+"""
+    open_device_by_name(dev_name) -> Ptr{ibv_context}
+"""
+function open_device_by_name(dev_name)
+    num_devices = Ref{Cint}(0)
+    dev_list = ibv_get_device_list(num_devices)
+    if dev_list == C_NULL
+        throw(SystemError("Failed to get devices list"))
+    end
+    if num_devices[] == 0
+        error("no devices found")
+    end
+
+    context = Ptr{ibv_context}(C_NULL)
+
+    for i = 1:num_devices[]
+        dev = unsafe_load(dev_list, i)
+        name = ibv_get_device_name(dev)|>unsafe_string
+        if name == dev_name
+            context = ibv_open_device(dev)
+            break
+        end
+    end
+
+    # Free device list resources
+    ibv_free_device_list(dev_list)
+
+    context == C_NULL && error("device $dev_name not found")
+
+    context
+end
+
+"""
+    req_notify_send_cq(ctx::Context, solicited_only=false) -> 0 or errno
+    req_notify_recv_cq(ctx::Context, solicited_only=false) -> 0 or errno
+
+Request a completion notification on the send or receive completion queue
+associated with `ctx`.  These functions are typically called from performance
+critical code so error checking/handling is left to the discretion of the
+caller.
+"""
+function req_notify_send_cq(ctx::Context, solicited_only=false)
+    ibv_req_notify_cq(ctx.send_cq, solicited_only)
+end,
+function req_notify_recv_cq(ctx::Context, solicited_only=false)
+    ibv_req_notify_cq(ctx.recv_cq, solicited_only)
+end
+
+# TODO Add more completion queue handling helpers
+# TODO Add a show method for Context
+# TODO Add get_dev_name/get_port_num methods for Context
+# TODO Add functions to change the QP state
+# TODO Document QP state transitions as shown here
+# https://www.rdmamojo.com/2012/05/05/qp-state-machine/
+#
+# 
+
