@@ -204,12 +204,39 @@ function req_notify_recv_cq(ctx::Context, solicited_only=false)
     ibv_req_notify_cq(ctx.recv_cq, solicited_only)
 end
 
+# TODO Document QP state transitions as shown here
+# https://www.rdmamojo.com/2012/05/05/qp-state-machine/
+"""
+    modify_qp_state(ctx, qp_state) -> QP state
+
+Attempt to modify the state of `ctx`'s QP to `qp_state`.
+
+The `qp_state` parameter may be an `ibv_qp_state` enum value or one of the
+following symbols: `:reset`, `:init`, `:rtr`, `:rts`, :`sqd`.  Currently no
+checking is performed to verify that the current QP state allows a transition to
+the given `qp_state`.  A `SystemError` will be thrown if an error occurs,
+otherwise the actual state of the QP is returned (which should equal
+`qp_state`).
+"""
+function modify_qp_state(ctx::Context, qp_state::ibv_qp_state)
+    qp_attr = ibv_qp_attr(; qp_state)
+    errno = ibv_modify_qp(ctx.qp, qp_attr, IBV_QP_STATE)
+    errno == 0 || throw(SystemError("ibv_modify_qp [:$qp_state_sym]", errno))
+    get_qp_state(ctx)
+end
+
+function modify_qp_state(ctx::Context, qp_state_sym)
+    qp_state = qp_state_sym == :reset ? IBV_QPS_RESET :
+               qp_state_sym == :init  ? IBV_QPS_INIT  :
+               qp_state_sym == :rtr   ? IBV_QPS_RTR   :
+               qp_state_sym == :rts   ? IBV_QPS_RTS   :
+               qp_state_sym == :sqd   ? IBV_QPS_SQD   :
+               error("unsupported QP state: :$qp_state_sym")
+    modify_qp_state(ctx, qp_state)
+end
+
+
 # TODO Add more completion queue handling helpers
 # TODO Add a show method for Context
 # TODO Add get_dev_name/get_port_num methods for Context
-# TODO Add functions to change the QP state
-# TODO Document QP state transitions as shown here
-# https://www.rdmamojo.com/2012/05/05/qp-state-machine/
-#
-# 
 
