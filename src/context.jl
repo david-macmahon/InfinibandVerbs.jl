@@ -40,9 +40,9 @@ This `Context` constructor creates the following libibverbs objects:
 - `qp::Ptr{ibv_qp}` - Queue pair
 
 Completion notifications on `send_cq` or `recv_cq` are not requested by this
-constructor, but the caller may request them using the `context` field of the
-returned `Context` object, if desired.  Upon successful return, the queue pair
-will be in the `IBV_QPS_INIT` state.
+constructor, but the caller may request them using [`req_notify_send_cq`](@ref)
+or [`req_notify_recv_cq`](@ref) as desired.  Upon successful return, the
+`Context`'s queue pair will be in the `IBV_QPS_INIT` state.
 
 # Extended help
 
