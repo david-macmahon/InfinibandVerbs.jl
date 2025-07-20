@@ -56,6 +56,15 @@ values will be greater than or equal to the requested values.
 - `max_send_wr`, `max_recv_wr`: Sizing for send/receive queues
 - `max_send_sge`, `max_recv_sge`: max SGE for send/receive WR sg_lists
 
+Completion notifications can be requested separately for send and receive
+completion channels via `req_notify_send` and `rec_notify_recv`, both default to
+`true`.  The `solicited_only` option of those notification requests can be
+specified by `solicited_only_send` and `solicited_only_recv`, both default to
+`false`.
+
+- `req_notify_send`, `req_notify_recv`: request CQ notification
+- `solicited_only_send`, `solicited_only_recv`: options for CQ notifications
+
 Expert mode (change at your own risk)
 
 - comp_vector=0: TODO make separate send/recv comp_vectors?
@@ -67,6 +76,8 @@ function Context(dev_name, port_num;
     send_cqe=1, recv_cqe=1, # sizing for send/recv completion queues
     max_send_wr=1, max_recv_wr=1, # sizing for send/recv queues
     max_send_sge=1, max_recv_sge=1, # sizing for SGE for send/recv WR sg_lists
+    req_notify_send=true, req_notify_recv=true,
+    solicited_only_send=false, solicited_only_recv=false,
     # Below here is best left unchanged
     comp_vector=0, # TODO make separate send/recv comp_vectors?
     max_inline_data=0,
@@ -113,6 +124,10 @@ function Context(dev_name, port_num;
     send_cq == C_NULL && throw(SystemError("ibv_create_cq [send]"))
     recv_cq = ibv_create_cq(context, recv_cqe, C_NULL, recv_comp_channel, comp_vector)
     recv_cq == C_NULL && throw(SystemError("ibv_create_cq [recv]"))
+
+    # Request notifications on the completion queues as desired
+    req_notify_send && ibv_req_notify_cq(send_cq, solicited_only_send)
+    req_notify_recv && ibv_req_notify_cq(recv_cq, solicited_only_recv)
 
     # Create queue pair (aka QP, starts in RESET state)
     qpinitattr = Ref(ibv_qp_init_attr(
