@@ -1,6 +1,6 @@
 module InfinibandVerbs
 
-export Context, req_notify_send_cq, req_notify_recv_cq, modify_qp_state
+export Context, req_notify_send_cq, req_notify_recv_cq, get_qp_state, modify_qp_state
 export reg_mr, create_recv_wrs, post_wrs
 export create_flow
 

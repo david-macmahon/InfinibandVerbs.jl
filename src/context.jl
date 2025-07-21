@@ -219,6 +219,15 @@ function req_notify_recv_cq(ctx::Context, solicited_only=false)
     ibv_req_notify_cq(ctx.recv_cq, solicited_only)
 end
 
+"""
+    get_qp_state(ctx::Context) -> QP state
+
+Return the state of the Context's QP as an `ibv_qp_state` enum.
+"""
+function get_qp_state(ctx::Context)
+    GC.@preserve ctx unsafe_load(ctx.qp.state)
+end
+
 # TODO Document QP state transitions as shown here
 # https://www.rdmamojo.com/2012/05/05/qp-state-machine/
 """
