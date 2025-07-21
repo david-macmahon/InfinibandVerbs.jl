@@ -306,7 +306,44 @@ function transition_qp_to_rts(ctx::Context)
     get_qp_state(ctx)
 end
 
-# TODO Add more completion queue handling helpers
+"""
+    wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicited_only=false) -> CQ
+    wait_for_recv_completion_event(ctx::Context, solicited_only=false) -> CQ
+    wait_for_send_completion_event(ctx::Context, solicited_only=false) -> CQ
+
+Blocking call that waits for a work completion event on `comp_channel`.
+
+After getting a completion event another notification is requested using the
+provided `solicited_only` value.  Returns the CQ that generated the completion
+event.
+"""
+function wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicited_only=false)
+    # Wait for the completion event
+    ev_cq = Ref{Ptr{ibv_cq}}(C_NULL)
+    ev_cq_ctx = Ref{Ptr{Nothing}}(C_NULL)
+    status = ibv_get_cq_event(comp_channel, ev_cq, ev_cq_ctx)
+    status == 0 || throw(SystemError("ibv_get_cq_event")) # Is libc's errno valid here?
+
+    # Ack the CQ event
+    # TODO: amortize this over N events???
+    ibv_ack_cq_events(ev_cq[], 1)
+
+    # Request notification of the next completion event
+    errno = ibv_req_notify_cq(ev_cq[], solicited_only)
+    errno == 0 || throw(SystemError("ibv_req_notify_cq", errno))
+
+    # Currently, Context does not support a user-defined CQ "context" pointer,
+    # so ev_cq_ctx will always be C_NULL so don't bother returning it.
+    ev_cq[]#, ev_cq_ctx[]
+end
+
+function wait_for_send_completion_event(ctx::Context, solicited_only=false)
+    wait_for_completion_event(ctx.send_comp_channel, solicited_only)
+end
+
+function wait_for_recv_completion_event(ctx::Context, solicited_only=false)
+    wait_for_completion_event(ctx.recv_comp_channel, solicited_only)
+end
+
 # TODO Add a show method for Context
-# TODO Add get_dev_name/get_port_num methods for Context
 
