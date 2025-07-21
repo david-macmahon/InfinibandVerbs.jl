@@ -1,4 +1,7 @@
 struct Context
+    dev_name::String
+    port_num::UInt8
+
     context::Ptr{ibv_context}
     pd::Ptr{ibv_pd}
 
@@ -160,7 +163,7 @@ function Context(dev_name, port_num;
     errno = ibv_modify_qp(qp, qp_attr, IBV_QP_STATE|IBV_QP_PORT)
     errno == 0 || throw(SystemError("ibv_modify_qp", errno))
 
-     Context(context, pd,
+     Context(dev_name, port_num, context, pd,
         recv_comp_channel, send_comp_channel,
         recv_cq, send_cq,
         qp,
