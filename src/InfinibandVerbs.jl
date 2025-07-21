@@ -1,7 +1,11 @@
 module InfinibandVerbs
 
-export Context, req_notify_send_cq, req_notify_recv_cq, get_qp_state, modify_qp_state
+# exports for context.jl functions
+export Context, req_notify_send_cq, req_notify_recv_cq, get_qp_state,
+        modify_qp_state, transition_qp_to_rts, transition_qp_to_rtr
+# exports for memory.jl functions
 export reg_mr, create_recv_wrs, post_wrs
+# exports for flow.jl functions
 export create_flow
 
 # Include Clang-generated API wrappers

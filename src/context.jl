@@ -259,6 +259,49 @@ function modify_qp_state(ctx::Context, qp_state_sym)
     modify_qp_state(ctx, qp_state)
 end
 
+"""
+    transition_qp_to_rtr(ctx::Context)
+
+Transitions the Context's QP from its current state to a "ready-to-receive"
+compatible state.
+
+The QP can be in any state and this function will perform legal state
+transitions to get to a "ready-to-receive" (RTR) compatible state.  The final
+state of the QP is returned.
+"""
+function transition_qp_to_rtr(ctx::Context)
+    qp_state = get_qp_state(ctx)
+    if qp_state == IBV_QPS_ERR
+        qp_state = modify_qp_state(ctx, IBV_QPS_RESET)
+    end
+    if qp_state == IBV_QPS_RESET
+        qp_state = modify_qp_state(ctx, IBV_QPS_INIT)
+    end
+    if qp_state == IBV_QPS_INIT
+        qp_state = modify_qp_state(ctx, IBV_QPS_RTR)
+    end
+    # Any other non-RTR state is also valid, so we're done!
+    get_qp_state(ctx)
+end
+
+"""
+    transition_qp_to_rts(ctx::Context)
+
+Transitions the Context's QP from its current state to the "ready-to-send"
+state.
+
+The QP can be in any state and this function will perform legal state
+transitions to get to the "ready-to-send" (RTS) compatible state.  The final
+state of the QP is returned.
+"""
+function transition_qp_to_rts(ctx::Context)
+    qp_state = get_qp_state(ctx)
+    if qp_state != IBV_QPS_RTS
+        transition_qp_to_rtr(ctx)
+        modify_qp_state(ctx, IBV_QPS_RTR)
+    end
+    get_qp_state(ctx)
+end
 
 # TODO Add more completion queue handling helpers
 # TODO Add a show method for Context
