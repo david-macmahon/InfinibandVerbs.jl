@@ -139,31 +139,49 @@ function create_recv_wrs(
 end
 
 """
-    post_wrs(ctx::Context, wr::Ptr) -> nothing
-    post_wrs(ctx::Context, wrs::Vector, idx=1) -> nothing
+    post_wrs(ctx::Context, wr::Ptr; modify_qp=false) -> nothing
+    post_wrs(ctx::Context, wrs::Vector, idx=1; modify_qp=false) -> nothing
 
-Post WRs to the QP `ctx.qp`.
+Post linked WRs to the `Context`'s QP.
 
 `wr` may be a `Ptr{ibv_send_wr}`/`Ptr{ibv_recv_wr}` or
 `Vector{ibv_send_wr}`/`Vector{ibv_recv_wr}`.  Passing a `Vector` will only post
 the WRs that are part of the linked list headed by the WR `wrs[idx]` of the
 Vector, which may not be the same as `wrs[idx:end]`.  Throws a `SystemError` if
-the underlying library call fails.
+the underlying library call fails, otherwise returns `nothing`.
+
+If `modify_qp` is `true`, the Context's QP will be transitioned appropriately
+for the work request type:
+
+- For `ibv_recv_wr`, the QP will be transitioned to a "ready-to-receive"
+  compatible state _after_ posting the WRs.
+
+- For `ibv_send_wr`, the QP will be transitioned to the "ready-to-send" state
+  _before_ posting the WRs.
 """
-function post_wrs(ctx::Context, send_wr::Ptr{ibv_send_wr})
+function post_wrs(ctx::Context, send_wr::Ptr{ibv_send_wr}; modify_qp=false)
+    # If modify_qp is true, transition QP to RTS state
+    modify_qp && transition_qp_to_rts(ctx)
+
     wr_bad = Ref{Ptr{ibv_send_wr}}(C_NULL)
     errno = ibv_post_send(ctx.qp, send_wr, wr_bad)
     errno == 0 || throw(SystemErrer("ibv_post_send [$(wr_bad[].wr_id)]", errno))
     nothing
 end
 
-function post_wrs(ctx::Context, recv_wr::Ptr{ibv_recv_wr})
+function post_wrs(ctx::Context, recv_wr::Ptr{ibv_recv_wr}; modify_qp=false)
     wr_bad = Ref{Ptr{ibv_recv_wr}}(C_NULL)
     errno = ibv_post_recv(ctx.qp, recv_wr, wr_bad)
     errno == 0 || throw(SystemErrer("ibv_post_recv [$(wr_bad[].wr_id)]", errno))
+
+    # If modify_qp is true, transition qp to RTR-compatible state
+    modify_qp && transition_qp_to_rtr(ctx)
     nothing
 end
 
-function post_wrs(ctx::Context, wrs::Vector{<:Union{ibv_send_wr,ibv_recv_wr}}, idx=1)
-    post_wrs(ctx, pointer(wrs, idx))
+function post_wrs(ctx::Context,
+    wrs::Vector{<:Union{ibv_send_wr,ibv_recv_wr}}, idx=1;
+    modify_qp=false
+)
+    post_wrs(ctx, pointer(wrs, idx); modify_qp)
 end
