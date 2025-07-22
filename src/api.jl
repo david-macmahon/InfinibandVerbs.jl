@@ -1964,6 +1964,17 @@ struct ibv_sge
     length::UInt32
     lkey::UInt32
 end
+function Base.getproperty(x::Ptr{ibv_sge}, f::Symbol)
+    f === :addr && return Ptr{UInt64}(x + 0)
+    f === :length && return Ptr{UInt32}(x + 8)
+    f === :lkey && return Ptr{UInt32}(x + 12)
+    return getfield(x, f)
+end
+
+function Base.setproperty!(x::Ptr{ibv_sge}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
 
 struct ibv_fd_arr
     arr::Ptr{Cint}
@@ -2072,6 +2083,18 @@ struct ibv_recv_wr
     next::Ptr{ibv_recv_wr}
     sg_list::Ptr{ibv_sge}
     num_sge::Cint
+end
+
+function Base.getproperty(x::Ptr{ibv_recv_wr}, f::Symbol)
+    f === :wr_id && return Ptr{UInt64}(x + 0)
+    f === :next && return Ptr{Ptr{ibv_recv_wr}}(x + 8)
+    f === :sg_list && return Ptr{Ptr{ibv_sge}}(x + 16)
+    f === :num_sge && return Ptr{Cint}(x + 24)
+    return getfield(x, f)
+end
+
+function Base.setproperty!(x::Ptr{ibv_recv_wr}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
 end
 
 @cenum ibv_ops_wr_opcode::UInt32 begin

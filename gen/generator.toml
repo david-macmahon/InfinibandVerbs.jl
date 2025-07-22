@@ -18,3 +18,9 @@ output_ignorelist = [
     "ibv_destroy_flow",
 #    "ibv_modify_cq"
 ]
+
+[codegen]
+field_access_method_list = [
+    "ibv_recv_wr",
+    "ibv_sge"
+]
