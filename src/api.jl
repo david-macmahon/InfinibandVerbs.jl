@@ -3673,6 +3673,53 @@ function ibv_modify_cq(cq, attr)
 end
 =#
 
+# Convenience getindex methods for ibv_send_wr/ibv_recv_wr/ibv_sge pointers
+
+"""
+    getindex(p::Ptr{T}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+
+Returns a pointer to the `i`th element of a memory contiguous list of type `T`
+pointed to by `p`.  This function does not de-reference any pointers (i.e it is
+not "unsafe").
+"""
+function Base.getindex(p::Ptr{T}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    p + (i-1)*sizeof(T)
+end
+
+"""
+    getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+
+Returns a pointer to the `i`th element of a memory contiguous list of type `T`
+pointer to by `unsafe_load(p)`.  Because this function performs an `unsafe_load`
+of `p` it should be considered "unsafe" in the same sense as `unsafe_load`.
+"""
+function Base.getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    getindex(unsafe_load(p), i)
+end
+
+"""
+    getindex(p::Ptr{T})::T where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+
+Performs an `unsafe_load` on `p` for the supported types: `ibv_send_wr`,
+`ibv_recv_wr`, `ibv_sge`.  Because this function performs an `unsafe_load` of
+`p` it should be considered "unsafe" in the same sense as `unsafe_load`.
+"""
+function Base.getindex(p::Ptr{T})::T where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    unsafe_load(p)
+end
+
+"""
+    getindex(p::Ptr{Ptr{T}})::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+
+Performs an `unsafe_load` on `p` for the supported types: `ibv_send_wr`,
+`ibv_recv_wr`, `ibv_sge`.  Equivalent to `getindex(p, 1)`.  Because this
+function performs an `unsafe_load` of `p` it should be considered "unsafe" in
+the same sense as `unsafe_load`.
+"""
+function Base.getindex(p::Ptr{Ptr{T}})::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    unsafe_load(p)
+end
+
 
 # exports
 const PREFIXES = ["IBV", "ibv_"]
