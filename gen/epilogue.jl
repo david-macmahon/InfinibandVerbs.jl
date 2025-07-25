@@ -74,17 +74,20 @@ end
 
 export ibv_poll_cq
 function ibv_poll_cq(cq, num_entries, wc)
-    ccall(get_context_op(cq, :poll_cq), Cint, (Ptr{ibv_cq}, Cint, Ptr{ibv_wc}), cq, num_entries, wc)
+    f = get_context_op(cq, :poll_cq)
+    ccall(f, Cint, (Ptr{ibv_cq}, Cint, Ptr{ibv_wc}), cq, num_entries, wc)
 end
 
 export ibv_req_notify_cq
 function ibv_req_notify_cq(cq, solicited_only)
-    ccall(get_context_op(cq, :req_notify_cq), Cint, (Ptr{ibv_cq}, Cint), cq, solicited_only)
+    f = get_context_op(cq, :req_notify_cq)
+    ccall(f, Cint, (Ptr{ibv_cq}, Cint), cq, solicited_only)
 end
 
 export ibv_post_recv
 function ibv_post_recv(qp, wr, bad_wr)
-    ccall(get_context_op(qp, :post_recv), Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
+    f = get_context_op(qp, :post_recv)
+    ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
 end
 
 export ibv_create_flow
@@ -97,7 +100,8 @@ function ibv_create_flow(qp, flow)
     end
 
     # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
-    ccall(unsafe_load(vctx.ibv_create_flow), Ptr{ibv_flow}, (Ptr{ibv_qp}, Ptr{ibv_flow_attr}), qp, flow)
+    f = unsafe_load(vctx.ibv_create_flow)
+    ccall(f, Ptr{ibv_flow}, (Ptr{ibv_qp}, Ptr{ibv_flow_attr}), qp, flow)
 end
 
 export ibv_destroy_flow
@@ -107,7 +111,8 @@ function ibv_destroy_flow(flow_id)
 	vctx == C_NULL && return Libc.EOPNOTSUPP
 
     # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
-    ccall(unsafe_load(vctx.ibv_destroy_flow), Cint, (Ptr{ibv_flow},), flow_id)
+    f = unsafe_load(vctx.ibv_destroy_flow)
+    ccall(f, Cint, (Ptr{ibv_flow},), flow_id)
 end
 
 # Pseudo-kwarg constructors
