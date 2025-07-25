@@ -1,31 +1,53 @@
 # InfinibandVerbs.jl
 
-[Infiniband Verbs][] for [Julia][]
+## [Infiniband Verbs][] for [Julia][]
 
-The `InfinibandVerbs.jl` package provides a [`Clang.jl`][]-generated module that
-wraps the Infiniband Verbs API implemented in the [`libibverbs`][] library from
-the [`rdma-core`][] project.  This package uses the `rdma-core` libraries from
-a pre-built Julia JLL package.  `rdma-core` packages for the host OS need not be
-installed (in fact they are ignored), but an RDMA compatible network interface
-card (NIC) is required.
+The [`InfinibandVerbs.jl`][] package provides a convenient and flexible way to
+utilize Infiniband Verbs from Julia.  Packets are transferred via
+direct-memory-access (DMA) to/from the network interface card (NIC) directly
+from/to pre-allocated Julia Arrays, bypassing the kernel (aka *kernel bypass*).
+This high level interface hides many of the complexities typically involved when
+using Infiniband Verbs, but the low level interface of the underlying Infiniband
+Verbs library [`libibverbs`][] is readily available if more specialized
+operations are needed.  The primary use case targeted by this package is
+sending/receiving UDP packets at very high data rates directly from/to Julia
+Arrays.
+
+The high level interface is implemented in the `InfinibandVerbs` module.  The
+low level interface is implemented in the `InfinibandVerbs.API` module which is
+a [`Clang.jl`][]-generated module that wraps the Infiniband Verbs API
+implemented in the `libibverbs` library from the [`rdma-core`][] project.  The
+`InfinibandVerbs.jl` package uses `rdma-core` libraries from a pre-built Julia
+JLL package.  An `rdma-core` package for the host OS does NOT need to be
+installed (it will be ignored if present), but an RDMA compatible network
+interface card (NIC) and driver is required.
 
 The underlying `rdma-core` libraries are only available for Linux, so
 `InfinibandVerbs.jl` is likewise only available for Linux.
 
 ## Current Status
 
-Currently `InfinibandVerbs.jl` consists of little more than the
-[`Clang.jl`][]-generated wrapper module `InfinibandVerbs.API`.  Not
-surprisingly, it follows the C interface very closely.  Some sample scripts
-showing basic usage are available in the `bin` directory.
-
-Some files are included under the `contrib` directory to facilitate the use of
-`RAW_PACKET` queue pairs (QPs).  See below for more information.
+- The high level interface provided by `InfinibandVerbs.jl` only supports
+  receiving packets
+- Packet transmission will be coming soon
+- The low level interface in `InfinibandVerbs.API` is a nearly complete
+  `Clang.jl`-generated wrapping of the `libibverbs` library.  Not surprisingly,
+  the low level interface follows the C interface very closely
+- Sample scripts showing basic usage of the low level API are available in the
+  `bin` directory
+- Sample scripts showcasing the high level interface will be coming soon.
+- Files are included under the `contrib` directory to facilitate the use of
+  `RAW_PACKET` queue pairs (QPs).  See below for more information.
 
 ## Future Plans
 
-The plan is to develop a higher level API to provide a more Julia-like interface
-to common operations.
+In addition to the "coming soon" items mentioned above, a package extension is
+planned that will facilitate using `InfinibandVerbs.jl` with [`PoolQueues.jl`][]
+to source/sink packets from/to a computational pipeline.
+
+While the high level functions already have extensive doc strings accessible
+from the Julia REPL (and within VS Code), proper web based documentation that
+ties all the pieces together more cogently will be developed.
 
 ## Notes on CAP_NET_RAW capability
 
@@ -115,7 +137,9 @@ will also need to:
 
 [Infiniband Verbs]: https://en.wikipedia.org/wiki/InfiniBand#Software_interfaces
 [Julia]: https://julialang.org/
-[`Clang.jl`]: https://github.com/JuliaInterop/Clang.jl
+[`InfinibandVerbs.jl`]: https://github.com/david-macmahon/InfinibandVerbs.jl
 [`libibverbs`]: https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md
+[`Clang.jl`]: https://github.com/JuliaInterop/Clang.jl
 [`rdma-core`]: https://github.com/linux-rdma/rdma-core/
+[`PoolQueues.jl`]: https://github.com/david-macmahon/PoolQueues.jl
 [capabilities]: https://sites.google.com/site/fullycapable/
