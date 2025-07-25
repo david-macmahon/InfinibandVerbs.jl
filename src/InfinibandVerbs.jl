@@ -26,4 +26,7 @@ include("memory.jl")
 # High level create_flow function
 include("flow.jl")
 
+# Receive loop function
+include("recvloop.jl")
+
 end # module InfinibandVerbs
