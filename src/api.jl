@@ -3575,8 +3575,8 @@ get_context_op(qp::Ptr{ibv_qp}, op::Symbol) = GC.@preserve qp get_context_op(uns
 
 # NOT exported
 function verbs_get_ctx(ctx::Ptr{ibv_context})::Ptr{verbs_context}
-	if unsafe_load(ctx.abi_compat) != __VERBS_ABI_IS_EXTENDED
-		return C_NULL
+    if unsafe_load(ctx.abi_compat) != __VERBS_ABI_IS_EXTENDED
+        return C_NULL
     end
 
     # This is a variation of the verbs.h code.  The verbs.h implementation
@@ -3587,7 +3587,7 @@ function verbs_get_ctx(ctx::Ptr{ibv_context})::Ptr{verbs_context}
     # verbs.h that the ibv_context struct pointed to by `ctx` "must be" the last
     # field in the verbs_context structure.  This allows us to compute the
     # offset by subtracting sizeof(ibv_context) from sizeof(verbs_context).
-	ctx - (sizeof(verbs_context) - sizeof(ibv_context))
+    ctx - (sizeof(verbs_context) - sizeof(ibv_context))
 end
 
 # NOT exported
@@ -3599,7 +3599,7 @@ verbs_context struct has a field for `op` and that field is non-NULL.
 Otherwise, return Ptr{verbs_context}(C_NULL).
 """
 function verbs_get_ctx_op(ctx::Ptr{ibv_context}, op::Symbol)::Ptr{verbs_context}
-	vctx = verbs_get_ctx(ctx)
+    vctx = verbs_get_ctx(ctx)
     vctx == C_NULL && return C_NULL # Not part of a verbs_context
 
     op_ptr = try
@@ -3610,7 +3610,7 @@ function verbs_get_ctx_op(ctx::Ptr{ibv_context}, op::Symbol)::Ptr{verbs_context}
 
     op_ptr == C_NULL && return C_NULL # Unknown op
     unsafe_load(op_ptr) == C_NULL && return C_NULL # Unsupported but known op
-	return vctx # vctx with valid op property
+    return vctx # vctx with valid op property
 end
 
 export ibv_poll_cq
@@ -3633,25 +3633,23 @@ end
 
 export ibv_create_flow
 function ibv_create_flow(qp, flow)
-
-	vctx = verbs_get_ctx_op(unsafe_load(qp.context), :ibv_create_flow)
-	if vctx == C_NULL
-		Libc.errno = Libc.EOPNOTSUPP
-		return C_NULL
+    vctx = verbs_get_ctx_op(unsafe_load(qp.context), :ibv_create_flow)
+    if vctx == C_NULL
+        Libc.errno = Libc.EOPNOTSUPP
+        return C_NULL
     end
 
-    # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
+    # verbs_get_ctx_op has validated everything so this unsafe_load is OK
     f = unsafe_load(vctx.ibv_create_flow)
     ccall(f, Ptr{ibv_flow}, (Ptr{ibv_qp}, Ptr{ibv_flow_attr}), qp, flow)
 end
 
 export ibv_destroy_flow
 function ibv_destroy_flow(flow_id)
+    vctx = verbs_get_ctx_op(unsafe_load(flow_id).context, :ibv_destroy_flow)
+    vctx == C_NULL && return Libc.EOPNOTSUPP
 
-	vctx = verbs_get_ctx_op(unsafe_load(flow_id).context, :ibv_destroy_flow)
-	vctx == C_NULL && return Libc.EOPNOTSUPP
-
-    # verbs_get_ctx_op has validated everthing so this unsafe_load is OK
+    # verbs_get_ctx_op has validated everything so this unsafe_load is OK
     f = unsafe_load(vctx.ibv_destroy_flow)
     ccall(f, Cint, (Ptr{ibv_flow},), flow_id)
 end
