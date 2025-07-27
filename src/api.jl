@@ -3656,7 +3656,7 @@ end
 
 # Pseudo-kwarg constructors
 
-function synthentic_constructor(::Type{T}; kwargs...) where T
+function synthentic_constructor(::Type{T}; kwargs...)::T where T
     ref = Ref(reinterpret(T, ntuple(_->0x00, Base.packedsize(T))))
     GC.@preserve ref begin
         ptr = Base.unsafe_convert(Ptr{T}, ref)
@@ -3664,7 +3664,7 @@ function synthentic_constructor(::Type{T}; kwargs...) where T
             setproperty!(ptr, f, v)
         end
     end
-    ref
+    ref[]
 end
 
 ibv_qp_attr(; kwargs...) = synthentic_constructor(ibv_qp_attr; kwargs...)

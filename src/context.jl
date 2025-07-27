@@ -160,7 +160,7 @@ function Context(dev_name, port_num; force=false,
 
     # Transition QP to INIT state
     qp_state = IBV_QPS_INIT
-    qp_attr = ibv_qp_attr(; qp_state, port_num)
+    qp_attr = Ref(ibv_qp_attr(; qp_state, port_num))
     errno = ibv_modify_qp(qp, qp_attr, IBV_QP_STATE|IBV_QP_PORT)
     errno == 0 || throw(SystemError("ibv_modify_qp", errno))
 
@@ -265,7 +265,7 @@ otherwise the actual state of the QP is returned (which should equal
 `qp_state`).
 """
 function modify_qp_state(ctx::Context, qp_state::ibv_qp_state)
-    qp_attr = ibv_qp_attr(; qp_state)
+    qp_attr = Ref(ibv_qp_attr(; qp_state))
     errno = ibv_modify_qp(ctx.qp, qp_attr, IBV_QP_STATE)
     errno == 0 || throw(SystemError("ibv_modify_qp [:$qp_state_sym]", errno))
     get_qp_state(ctx)
