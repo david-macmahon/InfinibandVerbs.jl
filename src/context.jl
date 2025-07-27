@@ -55,6 +55,7 @@ device's maximum supported value.  The actual QP values for the `max_...`
 keyword arguments will be stored in the returned `Context` object.  These QP
 values will be greater than or equal to the requested values.
 
+- `force`: if true, allow dev_name:port_num to be inactive (default `false`)
 - `send_cqe`, `recv_cqe`: Sizing for send/recev completion queues
 - `max_send_wr`, `max_recv_wr`: Sizing for send/receive queues
 - `max_send_sge`, `max_recv_sge`: max SGE for send/receive WR sg_lists
@@ -75,7 +76,7 @@ Expert mode (change at your own risk)
 - qp_type=IBV_QPT_RAW_PACKET
 
 """
-function Context(dev_name, port_num;
+function Context(dev_name, port_num; force=false,
     send_cqe=1, recv_cqe=1, # sizing for send/recv completion queues
     max_send_wr=1, max_recv_wr=1, # sizing for send/recv queues
     max_send_sge=1, max_recv_sge=1, # sizing for SGE for send/recv WR sg_lists
@@ -87,7 +88,7 @@ function Context(dev_name, port_num;
     qp_type=IBV_QPT_RAW_PACKET
 )
     # Open device
-    context = open_device_by_name(dev_name)
+    context = open_device_by_name(dev_name, force ? nothing : port_num)
 
     # Query device if any sizing parameters are given as -1
     if send_cqe == -1 || recv_cqe == -1 ||
@@ -175,9 +176,14 @@ function Context(dev_name, port_num;
 end
 
 """
-    open_device_by_name(dev_name) -> Ptr{ibv_context}
+    open_device_by_name(dev_name[, port_num]) -> Ptr{ibv_context}
+
+Open device `dev_name` and return `Ptr{ibv_context}`.
+
+If `port_num` is given, query that port on device `dev_name` and throw an
+exception if the port is inactive (i.e. not "up").
 """
-function open_device_by_name(dev_name)
+function open_device_by_name(dev_name, _::Nothing=nothing)
     num_devices = Ref{Cint}(0)
     dev_list = ibv_get_device_list(num_devices)
     if dev_list == C_NULL
@@ -203,6 +209,19 @@ function open_device_by_name(dev_name)
 
     context == C_NULL && error("device $dev_name not found")
 
+    context
+end
+
+function open_device_by_name(dev_name, port_num)
+    context = open_device_by_name(dev_name)
+    port_attr = Ref{ibv_port_attr}()
+    errno = ibv_query_port(context, port_num, port_attr)
+    errno == 0 || throw(SystemErrer("ibv_query_port"))
+    if port_attr[].state != IBV_PORT_ACTIVE
+        ibv_close_device(context)
+        msg = "device $dev_name port $port_num is not active"
+        throw(InvalidStateException(msg, Symbol(port_attr[].state)))
+    end
     context
 end
 
