@@ -3668,6 +3668,7 @@ function synthentic_constructor(::Type{T}; kwargs...)::T where T
 end
 
 ibv_qp_attr(; kwargs...) = synthentic_constructor(ibv_qp_attr; kwargs...)
+ibv_send_wr(; kwargs...) = synthentic_constructor(ibv_send_wr; kwargs...)
 
 #= TODO
 export ibv_modify_cq
