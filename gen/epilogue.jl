@@ -153,7 +153,7 @@ end
     getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
 
 Returns a pointer to the `i`th element of a memory contiguous list of type `T`
-pointer to by `unsafe_load(p)`.  Because this function performs an `unsafe_load`
+pointed to by `unsafe_load(p)`.  Because this function performs an `unsafe_load`
 of `p` it should be considered "unsafe" in the same sense as `unsafe_load`.
 """
 function Base.getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}

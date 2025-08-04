@@ -83,7 +83,7 @@ end
 
 Return `num_wr` `ibv_recv_wr` work requests (WRs) and their associated
 scatter-gather (SG) lists.
- 
+
 `bufs` and `mrs`, if given, must be Vectors.  If the form with `ctx::Context` is
 called, the memory region(s) of `bufs` will be registered before calling the
 `mrs` form and the resulting MRs will be returned in addition to the WRs and SG
