@@ -55,7 +55,7 @@ device's maximum supported value.  The actual QP values for the `max_...`
 keyword arguments will be stored in the returned `Context` object.  These QP
 values will be greater than or equal to the requested values.
 
-- `force`: if true, allow dev_name:port_num to be inactive (default `false`)
+- `force`: if true, allow `dev_name:port_num` to be inactive (default `false`)
 - `send_cqe`, `recv_cqe`: Sizing for send/recev completion queues
 - `max_send_wr`, `max_recv_wr`: Sizing for send/receive queues
 - `max_send_sge`, `max_recv_sge`: max SGE for send/receive WR sg_lists
@@ -71,9 +71,9 @@ specified by `solicited_only_send` and `solicited_only_recv`, both default to
 
 Expert mode (change at your own risk)
 
-- comp_vector=0: TODO make separate send/recv comp_vectors?
-- max_inline_data=0
-- qp_type=IBV_QPT_RAW_PACKET
+- `comp_vector=0`: TODO make separate send/recv comp_vectors?
+- `max_inline_data=0`
+- `qp_type=IBV_QPT_RAW_PACKET`
 
 """
 function Context(dev_name, port_num; force=false,
