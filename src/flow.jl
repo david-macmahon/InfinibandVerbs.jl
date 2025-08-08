@@ -110,9 +110,12 @@ end
 
 """
     create_flow(qp, port_num; <kwargs>) -> Ptr{ibv_flow}
+    create_flow(ctx::Context; <kwargs>) -> Ptr{ibv_flow}
 
-Create a flow rule to select which packets to receive from queue pair `qp`, port
-number `port_num`.
+Create a flow rule to specify which packets to receive.
+
+The flow rule will be created for queue pair `qp`, port number `port_num` (or
+`ctx.qp` and `ctx.port_num`).
 
 Various attributes and selectors of the flow rule can be specified by keyword
 arguments as described in the extended help.  The returned `Ptr{ibv_flow}` can
@@ -163,4 +166,22 @@ function create_flow(qp, port_num;
 
     flow_rule_ptr = Ptr{ibv_flow_attr}(pointer_from_objref(flow_rule))
     @GC.preserve flow_rule ibv_create_flow(qp, flow_rule_ptr)
+end
+
+function create_flow(ctx;
+    flow_type=:normal, priority=0, flags=0,
+    dst_mac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    src_mac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ether_type=0, vlan_tag=0,
+    src_ip=0, dst_ip=0,
+    dst_port=0, src_port=0, tcp_udp_type=:udp
+)
+    create_flow(ctx.qp, ctx.port_num;
+        flow_type, priority, flags,
+        dst_mac,
+        src_mac,
+        ether_type, vlan_tag,
+        src_ip, dst_ip,
+        dst_port, src_port, tcp_udp_type
+    )
 end
