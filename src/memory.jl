@@ -191,3 +191,27 @@ function post_wrs(ctx::Context,
 )
     post_wrs(ctx, pointer(wrs, idx); modify_qp)
 end
+
+"""
+    llength(ptr::Ptr{ibv_sge}) -> Int
+    llength(ptr::Ptr{ibv_recv_wr}) -> Int
+    llength(ptr::Ptr{ibv_send_wr}) -> Int
+
+Return the length of a linked list of work requests (WRs) or scatter/gather
+elemenets (SGEs) headed by the item pointed to by `ptr`.
+"""
+function llength(ptr::Ptr{T}, n=0) where {T<:Union{ibv_recv_wr,ibv_send_wr,ibv_sge}}
+    ptr == C_NULL ? n : llength(ptr.next[], n+1)
+end
+
+"""
+    llength(sges::AbstractArray{Ptr{ibv_sge}}, i=1) -> Int
+    llength(wrs::AbstractArray{Ptr{ibv_recv_wr}}, i=1) -> Int
+    llength(wrs::AbstractArray{Ptr{ibv_send_wr}}, i=1) -> Int
+
+Return the length of a linked list of work requests (WRs) or scatter/gather
+elemenets (SGEs) starting with the first (or `i`-th) element in the given Array.
+"""
+function llength(items::AbstractArray{T}, i=1) where {T<:Union{ibv_recv_wr,ibv_send_wr,ibv_sge}}
+    llength(pointer(items, i))
+end
