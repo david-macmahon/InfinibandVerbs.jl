@@ -185,3 +185,15 @@ function create_flow(ctx;
         dst_port, src_port, tcp_udp_type
     )
 end
+
+"""
+    destroy_flow(flow) -> nothing
+
+Destroy `flow` that was created by `create_flow`.  Packets specified by `flow`
+will no longer be received from the flow's device and port.
+"""
+function destroy_flow(flow)
+    errno = ibv_destroy_flow(flow)
+    errno == 0 || throw(SystemError("ibv_destroy_flow", errno))
+    nothing
+end
