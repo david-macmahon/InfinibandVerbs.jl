@@ -171,14 +171,14 @@ function post_wrs(ctx::Context, send_wr::Ptr{ibv_send_wr}; modify_qp=false)
 
     wr_bad = Ref{Ptr{ibv_send_wr}}(C_NULL)
     errno = ibv_post_send(ctx.qp, send_wr, wr_bad)
-    errno == 0 || throw(SystemErrer("ibv_post_send [$(wr_bad[].wr_id)]", errno))
+    errno == 0 || throw(SystemErrer("ibv_post_send [wr_id=$(wr_bad[][].wr_id)]", errno))
     nothing
 end
 
 function post_wrs(ctx::Context, recv_wr::Ptr{ibv_recv_wr}; modify_qp=false)
     wr_bad = Ref{Ptr{ibv_recv_wr}}(C_NULL)
     errno = ibv_post_recv(ctx.qp, recv_wr, wr_bad)
-    errno == 0 || throw(SystemErrer("ibv_post_recv [$(wr_bad[].wr_id)]", errno))
+    errno == 0 || throw(SystemError("ibv_post_recv [wr_id=$(wr_bad[][].wr_id)]", errno))
 
     # If modify_qp is true, transition qp to RTR-compatible state
     modify_qp && transition_qp_to_rtr(ctx)
