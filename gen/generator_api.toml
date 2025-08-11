@@ -1,8 +1,8 @@
 [general]
 library_name = "libibverbs"
-prologue_file_path = "prologue.jl"
+prologue_file_path = "prologue_api.jl"
 output_file_path = "../src/api.jl"
-epilogue_file_path = "epilogue.jl"
+epilogue_file_path = "epilogue_api.jl"
 module_name = "API"
 jll_pkg_name = "rdma_core_jll"
 export_symbol_prefixes = ["IBV", "ibv_"]

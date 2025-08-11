@@ -8,7 +8,7 @@ include_dir = normpath(rdma_core_jll.artifact_dir, "include")
 infiniband_dir = joinpath(include_dir, "infiniband")
 
 # wrapper generator options
-options = load_options(joinpath(@__DIR__, "generator.toml"))
+options = load_options(joinpath(@__DIR__, "generator_api.toml"))
 
 # add compiler flags, e.g. "-DXXXXXXXXX"
 args = get_default_args()
