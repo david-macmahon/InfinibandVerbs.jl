@@ -192,8 +192,8 @@ end
 
 Open device `dev_name` and return `Ptr{ibv_context}`.
 
-If `port_num` is given, query that port on device `dev_name` and throw an
-exception if the port is inactive (i.e. not "up").
+If `port_num` is given (and not `nothing`), query that port on device `dev_name`
+and throw an exception if the port is inactive (i.e. not "up").
 """
 function open_device_by_name(dev_name, _::Nothing=nothing)
     num_devices = Ref{Cint}(0)
