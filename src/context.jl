@@ -175,6 +175,16 @@ function Context(dev_name, port_num; force=false,
     )
 end
 
+function Base.show(io::IO, ctx::Context)
+    compact = get(io, :compact, false)
+    print(io, "Context(", ctx.dev_name, ":", ctx.port_num,
+        ", ", compact ? "" : "max WRxSGE send/recv ",
+        ctx.max_send_wr, "x", ctx.max_send_sge,
+        "/", ctx.max_recv_wr, "x", ctx.max_recv_sge,
+        ")"
+    )
+end
+
 """
     open_device_by_name(dev_name[, port_num]) -> Ptr{ibv_context}
 
@@ -364,5 +374,4 @@ function wait_for_recv_completion_event(ctx::Context, solicited_only=false)
     wait_for_completion_event(ctx.recv_comp_channel, solicited_only)
 end
 
-# TODO Add a show method for Context
 
