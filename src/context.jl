@@ -374,4 +374,32 @@ function wait_for_recv_completion_event(ctx::Context, solicited_only=false)
     wait_for_completion_event(ctx.recv_comp_channel, solicited_only)
 end
 
+"""
+    query_device(ctx::Context) -> ibv_device_attr
 
+Return attributes of the Context's device.
+
+Call `ibv_query_device` and return an `ibv_device_attr` (or throw `SystemError`
+on error).
+"""
+function query_device(ctx::Context)
+    dev_attr_ref = Ref{ibv_device_attr}()
+    errno = ibv_query_device(ctx.context, dev_attr_ref)
+    errno == 0 || throw(SystemError("ibv_query_device", errno))
+    dev_attr_ref[]
+end
+
+"""
+    query_port(ctx::Context) -> ibv_port_attr
+
+Return attributes of the Context's port.
+
+Call `ibv_query_port` and return an `ibv_port_attr` (or throw `SystemError` on
+error).
+"""
+function query_port(ctx::Context)
+    port_attr_ref = Ref{ibv_port_attr}()
+    errno = ibv_query_port(ctx.context, ctx.port_num, port_attr_ref)
+    errno == 0 || throw(SystemError("ibv_query_port", errno))
+    port_attr_ref[]
+end
