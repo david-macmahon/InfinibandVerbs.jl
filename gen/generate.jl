@@ -1,5 +1,6 @@
 using Clang.Generators
 using rdma_core_jll
+using GCCBootstrap_jll
 
 cd(@__DIR__)
 
@@ -20,4 +21,12 @@ headers = [joinpath(infiniband_dir, "verbs.h")]
 ctx = create_context(headers, args, options)
 
 # run generator
+build!(ctx)
+
+# Run again for fcntl.h and poll.h to get constants for fcntl() and poll()
+gcc_include_dir = normpath(GCCBootstrap_jll.artifact_dir, "./x86_64-linux-gnu/sysroot/usr/include/asm-generic")
+headers = joinpath.(gcc_include_dir, ["fcntl.h", "poll.h"])
+args = get_default_args()
+options = load_options(joinpath(@__DIR__, "generator_poll.toml"))
+ctx = create_context(headers, args, options)
 build!(ctx)

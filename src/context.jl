@@ -117,11 +117,13 @@ function Context(dev_name, port_num; force=false,
     pd == C_NULL && throw(SystemError("ibv_alloc_pd"))
 
     # Create send/receive completion channels
-    # TODO Make fd non-blocking with fcntl or ioctl???
     send_comp_channel = ibv_create_comp_channel(context)
     send_comp_channel == C_NULL && throw(SystemError("ibv_create_comp_channel [send]"))
+    fcntl_setnonblock(send_comp_channel)
+
     recv_comp_channel = ibv_create_comp_channel(context)
     recv_comp_channel == C_NULL && throw(SystemError("ibv_create_comp_channel [recv]"))
+    fcntl_setnonblock(recv_comp_channel)
 
     # Create send/receive completion queues
     send_cq = ibv_create_cq(context, send_cqe, C_NULL, send_comp_channel, comp_vector)
@@ -235,6 +237,16 @@ function open_device_by_name(dev_name, port_num)
     context
 end
 
+function Poll.fcntl_setnonblock(comp_channel::Ptr{ibv_comp_channel})
+    fd = unsafe_load(comp_channel.fd)
+    fcntl_setnonblock(fd)
+end
+
+function Poll.pollin(comp_channel::Ptr{ibv_comp_channel}, timeout_ms=-1)
+    fd = unsafe_load(comp_channel.fd)
+    pollin(fd, timeout_ms)
+end
+
 """
     req_notify_send_cq(ctx::Context, solicited_only=false) -> 0 or errno
     req_notify_recv_cq(ctx::Context, solicited_only=false) -> 0 or errno
@@ -336,22 +348,29 @@ function transition_qp_to_rts(ctx::Context)
 end
 
 """
-    wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicited_only=false) -> CQ
-    wait_for_recv_completion_event(ctx::Context, solicited_only=false) -> CQ
-    wait_for_send_completion_event(ctx::Context, solicited_only=false) -> CQ
+    wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}[, timeout_ms=-1], solicited_only=false) -> CQ
+    wait_for_recv_completion_event(ctx::Context, timeout_ms=-1], solicited_only=false) -> CQ
+    wait_for_send_completion_event(ctx::Context, timeout_ms=-1], solicited_only=false) -> CQ
 
 Blocking call that waits for a work completion event on `comp_channel`.
 
 After getting a completion event another notification is requested using the
 provided `solicited_only` value.  Returns the CQ that generated the completion
-event.
+event or `nothing` if a timeout occurs after `timeout_ms` milliseconds
+(`timeout_ms < 0` means wait "forever").
 """
-function wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicited_only=false)
+function wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, timeout_ms::Signed=-1, solicited_only=false)
     # Wait for the completion event
+    ready = pollin(comp_channel, timeout_ms)
+    ready || return nothing
+
     ev_cq = Ref{Ptr{ibv_cq}}(C_NULL)
     ev_cq_ctx = Ref{Ptr{Nothing}}(C_NULL)
     status = ibv_get_cq_event(comp_channel, ev_cq, ev_cq_ctx)
-    status == 0 || throw(SystemError("ibv_get_cq_event")) # Is libc's errno valid here?
+    # EAGAIN should "never" happen since pollin waited above; treat as timeout
+    status != 0 && Libc.errno() == Libc.EAGAIN && return nothing
+    # Throw on all other errors
+    status != 0 && throw(SystemError("ibv_get_cq_event")) # Is libc's errno valid here?
 
     # Ack the CQ event
     # TODO: amortize this over N events???
@@ -366,12 +385,24 @@ function wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicite
     ev_cq[]#, ev_cq_ctx[]
 end
 
-function wait_for_send_completion_event(ctx::Context, solicited_only=false)
-    wait_for_completion_event(ctx.send_comp_channel, solicited_only)
+function wait_for_completion_event(comp_channel::Ptr{ibv_comp_channel}, solicited_only::Bool)
+    wait_for_completion_event(comp_channel, -1, solicited_only)
 end
 
-function wait_for_recv_completion_event(ctx::Context, solicited_only=false)
-    wait_for_completion_event(ctx.recv_comp_channel, solicited_only)
+function wait_for_send_completion_event(ctx::Context, timeout_ms::Signed=-1, solicited_only=false)
+    wait_for_completion_event(ctx.send_comp_channel, timeout_ms, solicited_only)
+end
+
+function wait_for_send_completion_event(ctx::Context, solicited_only::Bool)
+    wait_for_completion_event(ctx.send_comp_channel, -1, solicited_only)
+end
+
+function wait_for_recv_completion_event(ctx::Context, timeout_ms::Signed=-1, solicited_only=false)
+    wait_for_completion_event(ctx.recv_comp_channel, timeout_ms, solicited_only)
+end
+
+function wait_for_recv_completion_event(ctx::Context, solicited_only::Bool)
+    wait_for_completion_event(ctx.recv_comp_channel, -1, solicited_only)
 end
 
 """

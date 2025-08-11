@@ -1,0 +1,16 @@
+[general]
+library_name = ""
+output_file_path = "../src/poll.jl"
+epilogue_file_path = "epilogue_poll.jl"
+module_name = "Poll"
+jll_pkg_name = ""
+use_julia_native_enum_type = true
+output_ignorelist = [
+    "f_owner_ex",
+    "flock",
+    "flock64",
+    "__kernel_long_t",
+    "__kernel_pid_t",
+    "__kernel_off_t",
+    "__kernel_loff_t"
+]

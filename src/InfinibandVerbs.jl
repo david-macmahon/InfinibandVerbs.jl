@@ -14,6 +14,10 @@ export create_flow, destroy_flow
 include("api.jl")
 using .API
 
+# Include Clang-generated fcntl/poll wrappers
+include("poll.jl")
+using .Poll
+
 # Misc utility functions
 include("utils.jl")
 

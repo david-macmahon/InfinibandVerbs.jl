@@ -21,6 +21,7 @@ output_ignorelist = [
 
 [codegen]
 field_access_method_list = [
+    "ibv_comp_channel",
     "ibv_recv_wr",
     "ibv_sge"
 ]

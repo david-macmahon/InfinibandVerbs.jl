@@ -1511,6 +1511,17 @@ struct ibv_comp_channel
     fd::Cint
     refcnt::Cint
 end
+function Base.getproperty(x::Ptr{ibv_comp_channel}, f::Symbol)
+    f === :context && return Ptr{Ptr{ibv_context}}(x + 0)
+    f === :fd && return Ptr{Cint}(x + 8)
+    f === :refcnt && return Ptr{Cint}(x + 12)
+    return getfield(x, f)
+end
+
+function Base.setproperty!(x::Ptr{ibv_comp_channel}, f::Symbol, v)
+    unsafe_store!(getproperty(x, f), v)
+end
+
 
 struct ibv_cq
     data::NTuple{128, UInt8}
@@ -3694,7 +3705,7 @@ end
     getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
 
 Returns a pointer to the `i`th element of a memory contiguous list of type `T`
-pointer to by `unsafe_load(p)`.  Because this function performs an `unsafe_load`
+pointed to by `unsafe_load(p)`.  Because this function performs an `unsafe_load`
 of `p` it should be considered "unsafe" in the same sense as `unsafe_load`.
 """
 function Base.getindex(p::Ptr{Ptr{T}}, i)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
