@@ -182,3 +182,21 @@ the same sense as `unsafe_load`.
 function Base.getindex(p::Ptr{Ptr{T}})::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
     unsafe_load(p)
 end
+
+function Base.show(io::IO, wr::T) where T<:Union{ibv_send_wr,ibv_recv_wr}
+    compact = get(io, :compact, false)
+    print(io, nameof(T), "(", wr.wr_id, ", next->")
+    print(io, wr.next == C_NULL ? "∅" : wr.next[].wr_id)
+    if !compact
+        print(io, ", [")
+        if wr.sg_list != C_NULL
+            for i = 1:wr.num_sge
+                print(io, wr.sg_list[i][].length, "@0x")
+                print(io, string(wr.sg_list[i][].addr, base=16))
+                print(io, i==wr.num_sge ? "" : ",")
+            end
+        end
+        print(io, "]")
+    end
+    print(io, ")")
+end
