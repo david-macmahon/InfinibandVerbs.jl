@@ -78,7 +78,7 @@ function create_sges(
 end
 
 """
-    create_recv_wrs(ctx::Context, bufs, num_wr[, npad]; post=true) -> recv_wrs, sges, mrs
+    create_recv_wrs(ctx::Context, bufs, num_wr[, npad]; post=false) -> recv_wrs, sges, mrs
     create_recv_wrs(mrs, bufs, num_wr[, npad]) -> recv_wrs, sges
 
 Return `num_wr` `ibv_recv_wr` work requests (WRs) and their associated
@@ -92,9 +92,9 @@ populating the SG lists so `mrs` must correspond to `bufs`.  All of the Arrays
 in `bufs` must hold the same number of packets (i.e. packet fragments).  See the
 doc string for [`create_sges`](@ref) for details about the `npad` parameter.
 
-The `Context` form also accepts keyword argument `post`.  If `post` is `true`
-(the default), the work requests will be posted and the `Context`'s QP will be
-transitioned to a "ready-to-receive" (RTR) compatible state.
+The `Context` form also accepts keyword argument `post` (default `false`).  If
+`post` is `true`, the work requests will be posted and the `Context`'s QP will
+be transitioned to a "ready-to-receive" (RTR) compatible state.
 """
 function create_recv_wrs(
     mrs::AbstractVector{Ptr{ibv_mr}},
@@ -136,7 +136,7 @@ function create_recv_wrs(
     bufs::AbstractVector{<:AbstractArray},
     num_wr::Integer,
     npad::Union{Integer, Vector{<:Integer}}=0;
-    post=true
+    post=false
 )
     mrs = reg_mr.(Ref(ctx), bufs)
     recv_wrs, sges = create_recv_wrs(mrs, bufs, num_wr, npad)
