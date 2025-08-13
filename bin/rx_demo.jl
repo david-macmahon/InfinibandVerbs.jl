@@ -59,7 +59,7 @@ qp == C_NULL && throw(SystemError("ibv_create_qp"))
 # Transition QP to INIT state
 qp_state = IBV_QPS_INIT
 port_num = 1 # NIC port (1 or 2 for dual port NIC)
-qp_attr = ibv_qp_attr(; qp_state, port_num)
+qp_attr = Ref(ibv_qp_attr(; qp_state, port_num))
 ibv_modify_qp(qp, qp_attr, IBV_QP_STATE|IBV_QP_PORT)
 
 # Create packet receive buffer for 10 packets of up to 9000 bytes each.
@@ -121,20 +121,8 @@ num_topost = num_pkt - num_posted # Number of WRs still to post
 
 # Transition qp to ready-to-receive (RTR) state
 qp_state = IBV_QPS_RTR
-qp_attr = ibv_qp_attr(; qp_state)
+qp_attr[] = ibv_qp_attr(; qp_state)
 ibv_modify_qp(qp, qp_attr, IBV_QP_STATE)
-
-#=
-# For non-blocking polling of completion channel's fd
-struct PollFD
-    fd::Cint
-    events::Cshort
-    revents::Cshort
-end
-
-pfd = Ref(PollFD(unsafe_load(recv_cc).fd, 1, 0))
-@time ccall(:poll, Cint, (Ptr{PollFD}, Culong, Cint), pfd, 1, 10000)
-=#
 
 # Blocking call that waits for a work completion event
 function wait_for_completion_event(cc::Ptr{ibv_comp_channel},
