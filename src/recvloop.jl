@@ -98,15 +98,8 @@ function recv_loop(cb, ctx::Context, recv_wrs, timeout_ms, cb_args...)
         # unless user callback has a bug.
         npkts_repost = clamp(npkts_repost, 1, num_wc)
 
-        # Link first npkts_repost-1 WRs from WCs for re-posting
-        for wcidx = 1:num_wc-1
-            wr_id = wcs[wcidx].wr_id
-            wr_id_next = wcs[wcidx+1].wr_id
-            ptr_next = pointer(recv_wrs, wr_id_next)
-            pointer(recv_wrs, wr_id).next = ptr_next
-        end
-        # Null terminate WR linked list at npkts_repost point
-        pointer(recv_wrs, wcs[npkts_repost].wr_id).next = C_NULL
+        # Link npkts_repost WRs from WCs for re-posting
+        link_wrs!(recv_wrs, wcs, npkts_repost)
 
         # Repost WRs
         post_wrs(ctx, recv_wrs, wcs[1].wr_id)

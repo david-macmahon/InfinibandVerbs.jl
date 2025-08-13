@@ -6,7 +6,7 @@ export Context, req_notify_send_cq, req_notify_recv_cq, get_qp_state,
         wait_for_completion_event, wait_for_send_completion_event,
         wait_for_recv_completion_event, query_device, query_port
 # exports for memory.jl functions
-export reg_mr, create_recv_wrs, create_sges, post_wrs, llength
+export reg_mr, create_recv_wrs, create_sges, post_wrs, link_wrs!, llength
 # exports for flow.jl functions
 export create_flow, destroy_flow
 

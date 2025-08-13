@@ -193,6 +193,63 @@ function post_wrs(ctx::Context,
 end
 
 """
+    link_wrs!(wrs, n=length(wrs))
+
+Link the first `n`, default all) work requests in `wrs`.  `n < 1` does nothing.
+`n >= length(wrs)` links all work requests in `wrs`.  Returns `wrs`.
+"""
+function link_wrs!(
+    wrs::AbstractVector{<:Union{ibv_send_wr,ibv_recv_wr}},
+    n=length(wrs)
+)
+    n < 1 && return wrs
+    n = min(n, length(wrs))
+
+    # Update the `next` pointer of all but the last work request
+    for wr_id = 1:n-1
+        pnext = pointer(wrs, wr_id+1)
+        pointer(wrs, wr_id).next  = pnext
+    end
+    # Null terminate the linked list
+    pointer(wrs, n).next = C_NULL
+
+    wrs
+end
+
+"""
+    link_wrs!(wrs, wcs, num_wc)
+
+Link work requests in `wrs` identified by work completions `wcs[1:num_wc]`.
+
+`num_wc < 1` does nothing.  `num_wc >= length(wcs)` links work requests
+identified by all work completiond in `wcs`.
+Throws an exception if `num_wcs > length(wrs)`.  Returns `wrs`.
+"""
+function link_wrs!(
+    wrs::AbstractVector{<:Union{ibv_send_wr,ibv_recv_wr}},
+    wcs::AbstractVector{ibv_wc},
+    num_wc
+)
+    num_wc < 1 && return wrs
+    num_wc = min(num_wc, length(wcs))
+    num_wc > length(wrs) && error("more WCs than WRs ($num_wc > $(length(wrs)))")
+
+    # Update the `next` pointer of the WRs identified by the first `num_wc-1`
+    # WCs
+    wr_id = wcs[1].wr_id
+    for i = 1:num_wc-1
+        wr_id_next = wcs[i+1].wr_id
+        pnext = pointer(wrs, wr_id_next)
+        pointer(wrs, wr_id).next  = pnext
+        wr_id = wr_id_next
+    end
+    # Null terminate the linked list
+    pointer(wrs, wr_id).next = C_NULL
+
+    wrs
+end
+
+"""
     llength(ptr::Ptr{ibv_sge}) -> Int
     llength(ptr::Ptr{ibv_recv_wr}) -> Int
     llength(ptr::Ptr{ibv_send_wr}) -> Int
