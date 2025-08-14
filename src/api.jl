@@ -3184,10 +3184,6 @@ function ibv_query_rt_values_ex(context, values)
     ccall((:ibv_query_rt_values_ex, libibverbs), Cint, (Ptr{ibv_context}, Ptr{ibv_values_ex}), context, values)
 end
 
-function ibv_query_device_ex(context, input, attr)
-    ccall((:ibv_query_device_ex, libibverbs), Cint, (Ptr{ibv_context}, Ptr{ibv_query_device_ex_input}, Ptr{ibv_device_attr_ex}), context, input, attr)
-end
-
 function ibv_open_qp(context, qp_open_attr)
     ccall((:ibv_open_qp, libibverbs), Ptr{ibv_qp}, (Ptr{ibv_context}, Ptr{ibv_qp_open_attr}), context, qp_open_attr)
 end
@@ -3640,6 +3636,22 @@ export ibv_post_recv
 function ibv_post_recv(qp, wr, bad_wr)
     f = get_context_op(qp, :post_recv)
     ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
+end
+
+export ibv_query_device_ex
+function ibv_query_device_ex(ctx, input, attr)
+    vctx = verbs_get_ctx_op(ctx, :query_device_ex)
+    if vctx == C_NULL
+        Libc.errno(Libc.EOPNOTSUPP)
+        return C_NULL
+    end
+
+    # verbs_get_ctx_op has validated everything so this unsafe_load is OK
+    f = unsafe_load(vctx.query_device_ex)
+    ccall(f, Cint,
+        (Ptr{ibv_context}, Ptr{ibv_query_device_ex_input}, Ptr{ibv_device_attr_ex}, Csize_t),
+        ctx, input, attr, sizeof(ibv_device_attr_ex)
+    )
 end
 
 export ibv_create_flow

@@ -421,6 +421,21 @@ function query_device(ctx::Context)
 end
 
 """
+    query_device_ex(ctx::Context) -> ibv_device_attr_ex
+
+Return extended attributes of the Context's device.
+
+Call `ibv_query_device_ex` and return an `ibv_device_attr_ex` (or throw
+`SystemError` on error).
+"""
+function query_device_ex(ctx::Context)
+    dev_attr_ex_ref = Ref{ibv_device_attr_ex}()
+    errno = ibv_query_device_ex(ctx.context, C_NULL, dev_attr_ex_ref)
+    errno == 0 || throw(SystemError("ibv_query_device_ex", errno))
+    dev_attr_ex_ref[]
+end
+
+"""
     query_port(ctx::Context) -> ibv_port_attr
 
 Return attributes of the Context's port.

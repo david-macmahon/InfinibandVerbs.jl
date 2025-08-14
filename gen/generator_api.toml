@@ -14,6 +14,7 @@ output_ignorelist = [
     "ibv_poll_cq",
     "ibv_req_notify_cq",
     "ibv_post_recv",
+    "ibv_query_device_ex",
     "ibv_create_flow",
     "ibv_destroy_flow",
 #    "ibv_modify_cq"
@@ -22,6 +23,7 @@ output_ignorelist = [
 [codegen]
 field_access_method_list = [
     "ibv_comp_channel",
+    "ibv_device_attr_ex",
     "ibv_recv_wr",
     "ibv_sge"
 ]

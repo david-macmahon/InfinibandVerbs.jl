@@ -90,6 +90,22 @@ function ibv_post_recv(qp, wr, bad_wr)
     ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
 end
 
+export ibv_query_device_ex
+function ibv_query_device_ex(ctx, input, attr)
+    vctx = verbs_get_ctx_op(ctx, :query_device_ex)
+    if vctx == C_NULL
+        Libc.errno(Libc.EOPNOTSUPP)
+        return C_NULL
+    end
+
+    # verbs_get_ctx_op has validated everything so this unsafe_load is OK
+    f = unsafe_load(vctx.query_device_ex)
+    ccall(f, Cint,
+        (Ptr{ibv_context}, Ptr{ibv_query_device_ex_input}, Ptr{ibv_device_attr_ex}, Csize_t),
+        ctx, input, attr, sizeof(ibv_device_attr_ex)
+    )
+end
+
 export ibv_create_flow
 function ibv_create_flow(qp, flow)
     vctx = verbs_get_ctx_op(unsafe_load(qp.context), :ibv_create_flow)
