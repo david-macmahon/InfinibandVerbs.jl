@@ -3646,7 +3646,7 @@ export ibv_create_flow
 function ibv_create_flow(qp, flow)
     vctx = verbs_get_ctx_op(unsafe_load(qp.context), :ibv_create_flow)
     if vctx == C_NULL
-        Libc.errno = Libc.EOPNOTSUPP
+        Libc.errno(Libc.EOPNOTSUPP)
         return C_NULL
     end
 
