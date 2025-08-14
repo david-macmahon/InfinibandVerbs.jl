@@ -289,7 +289,7 @@ otherwise the actual state of the QP is returned (which should equal
 function modify_qp_state(ctx::Context, qp_state::ibv_qp_state)
     qp_attr = Ref(ibv_qp_attr(; qp_state))
     errno = ibv_modify_qp(ctx.qp, qp_attr, IBV_QP_STATE)
-    errno == 0 || throw(SystemError("ibv_modify_qp [:$qp_state_sym]", errno))
+    errno == 0 || throw(SystemError("ibv_modify_qp [$qp_state]", errno))
     get_qp_state(ctx)
 end
 
@@ -342,7 +342,7 @@ function transition_qp_to_rts(ctx::Context)
     qp_state = get_qp_state(ctx)
     if qp_state != IBV_QPS_RTS
         transition_qp_to_rtr(ctx)
-        modify_qp_state(ctx, IBV_QPS_RTR)
+        modify_qp_state(ctx, IBV_QPS_RTS)
     end
     get_qp_state(ctx)
 end
