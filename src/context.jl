@@ -95,9 +95,8 @@ function Context(dev_name, port_num; force=false,
             max_send_wr  == -1 || max_recv_wr  == -1 ||
             max_send_sge == -1 || max_recv_sge == -1
             
-        device_attr = Ref{ibv_device_attr}()
-        errno = ibv_query_device(context, device_attr)
-        errno == 0 || throw(SystemError("ibv_query_device", errno))
+        # Query device attributes
+        device_attr = query_device(context)
 
         # In practice, using max_cqe directly fails with "Cannot allocate
         # memory" error.  Using max_cqe÷sizeof(Ptr) works.  Using
