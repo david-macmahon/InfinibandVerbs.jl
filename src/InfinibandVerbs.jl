@@ -8,7 +8,9 @@ export Context, req_notify_send_cq, req_notify_recv_cq, get_qp_state,
         query_port, hascapability
 
 # exports for memory.jl functions
-export reg_mr, create_recv_wrs, create_sges, post_wrs, link_wrs!, llength
+export reg_mr, create_sges, create_recv_wrs, create_send_wrs, post_wrs,
+       link_wrs!, llength
+
 # exports for flow.jl functions
 export create_flow, destroy_flow
 

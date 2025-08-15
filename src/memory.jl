@@ -145,6 +145,87 @@ function create_recv_wrs(
 end
 
 """
+    create_send_wrs(ctx::Context, bufs, num_wr[, npad]; offload=false, post=false) -> send_wrs, sges, mrs
+    create_send_wrs(mrs, bufs, num_wr[, npad]) -> send_wrs, sges
+
+Return `num_wr` `ibv_send_wr` work requests (WRs) and their associated
+scatter-gather (SG) lists.
+
+`bufs` and `mrs`, if given, must be Vectors.  If the form with `ctx::Context` is
+called, the memory region(s) of `bufs` will be registered before calling the
+`mrs` form and the resulting MRs will be returned in addition to the WRs and SG
+lists.  If memory regions `mrs` are given, their `lkey` values will be used when
+populating the SG lists so `mrs` must correspond to `bufs`.  All of the Arrays
+in `bufs` must hold the same number of packets (i.e. packet fragments).  See the
+doc string for [`create_sges`](@ref) for details about the `npad` parameter.
+
+The `Context` form also accepts keyword arguments `offload` and `post`, both of
+which default to `false`.  If `offload` is `true` the WRs will be setup to
+offload the IP checksum calculation to the NIC.  You can use `hascapability` to
+check whether your device supports this.  See the man page of `ibv_post_send`
+for more details.  If `post` is `true`, the `Context`'s QP will be transitioned
+to the "ready-to-send" (RTS) state and the work requests will be posted.
+"""
+function create_send_wrs(
+    mrs::AbstractVector{Ptr{ibv_mr}},
+    bufs::AbstractVector{<:AbstractArray},
+    num_wr::Integer,
+    npad::Union{Integer, Vector{<:Integer}}=0;
+    offload=false
+)
+    # Create and initialize SGEs
+    sges = create_sges(bufs, get_lkey.(mrs), num_wr, npad)
+    sgheads = view(sges, 1, :)
+
+    # Create and initialize send WRs
+    num_sge = length(bufs)
+    send_wrs = Vector{ibv_send_wr}(undef, num_wr)
+
+    opcode = IBV_WR_SEND
+    send_flags = offload ? IBV_SEND_IP_CSUM : 0
+    for wr_id = 1:num_wr-1
+        next = pointer(send_wrs, wr_id+1)
+        sg_list = pointer(sgheads, wr_id)
+        send_wrs[wr_id] = ibv_send_wr(;
+            wr_id,   # wr_id::UInt64
+            next,    # next::Ptr{ibv_recv_wr}
+            sg_list, # sg_list::Ptr{ibv_sge}
+            num_sge, # num_sge::Int32
+            opcode,
+            send_flags
+        )
+    end
+    # Initialize last element
+    wr_id = num_wr
+    next = C_NULL
+    sg_list = pointer(sgheads, num_wr)
+    send_wrs[num_wr] = ibv_send_wr(;
+        wr_id,   # wr_id::UInt64
+        next,    # next::Ptr{ibv_recv_wr}
+        sg_list, # sge_list::Ptr{ibv_sge}
+        num_sge, # num_sge::Int32
+        opcode,
+        send_flags
+    )
+
+    send_wrs, sges
+end
+
+function create_send_wrs(
+    ctx::Context,
+    bufs::AbstractVector{<:AbstractArray},
+    num_wr::Integer,
+    npad::Union{Integer, Vector{<:Integer}}=0;
+    offload=false,
+    post=false
+)
+    mrs = reg_mr.(Ref(ctx), bufs)
+    send_wrs, sges = create_send_wrs(mrs, bufs, num_wr, npad; offload)
+    post && post_wrs(ctx, pointer(send_wrs); modify_qp=true)
+    send_wrs, sges, mrs
+end
+
+"""
     post_wrs(ctx::Context, wr::Ptr; modify_qp=false) -> nothing
     post_wrs(ctx::Context, wrs::Vector, idx=1; modify_qp=false) -> nothing
 
