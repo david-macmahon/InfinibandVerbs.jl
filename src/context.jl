@@ -448,3 +448,57 @@ function query_port(ctx::Context)
     errno == 0 || throw(SystemError("ibv_query_port", errno))
     port_attr_ref[]
 end
+
+"""
+    hascapability(ctx::Context, cap)
+
+Return `true` if the device corresponding to `ctx` has capability `cap`.
+
+`cap` may be any one (and only one) of the `ibv_device_cap_flags` or
+`ibv_raw_packet_caps` flags.
+
+# Extended help
+
+| `ibv_device_cap_flags`             |
+|:-----------------------------------|
+| `IBV_DEVICE_RESIZE_MAX_WR`         |
+| `IBV_DEVICE_BAD_PKEY_CNTR`         |
+| `IBV_DEVICE_BAD_QKEY_CNTR`         |
+| `IBV_DEVICE_RAW_MULTI`             |
+| `IBV_DEVICE_AUTO_PATH_MIG`         |
+| `IBV_DEVICE_CHANGE_PHY_PORT`       |
+| `IBV_DEVICE_UD_AV_PORT_ENFORCE`    |
+| `IBV_DEVICE_CURR_QP_STATE_MOD`     |
+| `IBV_DEVICE_SHUTDOWN_PORT`         |
+| `IBV_DEVICE_INIT_TYPE`             |
+| `IBV_DEVICE_PORT_ACTIVE_EVENT`     |
+| `IBV_DEVICE_SYS_IMAGE_GUID`        |
+| `IBV_DEVICE_RC_RNR_NAK_GEN`        |
+| `IBV_DEVICE_SRQ_RESIZE`            |
+| `IBV_DEVICE_N_NOTIFY_CQ`           |
+| `IBV_DEVICE_MEM_WINDOW`            |
+| `IBV_DEVICE_UD_IP_CSUM`            |
+| `IBV_DEVICE_XRC`                   |
+| `IBV_DEVICE_MEM_MGT_EXTENSIONS`    |
+| `IBV_DEVICE_MEM_WINDOW_TYPE_2A`    |
+| `IBV_DEVICE_MEM_WINDOW_TYPE_2B`    |
+| `IBV_DEVICE_RC_IP_CSUM`            |
+| `IBV_DEVICE_RAW_IP_CSUM`           |
+| `IBV_DEVICE_MANAGED_FLOW_STEERING` |
+
+| `ibv_raw_packet_caps`                |
+|:-------------------------------------|
+| `IBV_RAW_PACKET_CAP_CVLAN_STRIPPING` |
+| `IBV_RAW_PACKET_CAP_SCATTER_FCS`     |
+| `IBV_RAW_PACKET_CAP_IP_CSUM`         |
+| `IBV_RAW_PACKET_CAP_DELAY_DROP`      |
+"""
+function hascapability(ctx::Context, devcap::ibv_device_cap_flags)::Bool
+    dev_attr = query_device(ctx)
+    (dev_attr.device_cap_flags & devcap) == devcap
+end
+
+function hascapability(ctx::Context, rawcap::ibv_raw_packet_caps)::Bool
+    dev_attr_ex = query_device_ex(ctx)
+    (dev_attr_ex.raw_packet_caps & rawcap) == rawcap
+end
