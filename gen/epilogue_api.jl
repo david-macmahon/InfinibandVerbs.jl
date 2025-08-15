@@ -90,6 +90,12 @@ function ibv_post_recv(qp, wr, bad_wr)
     ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
 end
 
+export ibv_post_send
+function ibv_post_send(qp, wr, bad_wr)
+    f = get_context_op(qp, :post_send)
+    ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_send_wr}, Ptr{Ptr{ibv_send_wr}}), qp, wr, bad_wr)
+end
+
 export ibv_query_device_ex
 function ibv_query_device_ex(ctx, input, attr)
     vctx = verbs_get_ctx_op(ctx, :query_device_ex)

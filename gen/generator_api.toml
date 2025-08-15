@@ -14,6 +14,7 @@ output_ignorelist = [
     "ibv_poll_cq",
     "ibv_req_notify_cq",
     "ibv_post_recv",
+    "ibv_post_send",
     "ibv_query_device_ex",
     "ibv_create_flow",
     "ibv_destroy_flow",

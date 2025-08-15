@@ -3228,10 +3228,6 @@ function ibv_destroy_rwq_ind_table(rwq_ind_table)
     ccall((:ibv_destroy_rwq_ind_table, libibverbs), Cint, (Ptr{ibv_rwq_ind_table},), rwq_ind_table)
 end
 
-function ibv_post_send(qp, wr, bad_wr)
-    ccall((:ibv_post_send, libibverbs), Cint, (Ptr{ibv_qp}, Ptr{ibv_send_wr}, Ptr{Ptr{ibv_send_wr}}), qp, wr, bad_wr)
-end
-
 function ibv_create_ah(pd, attr)
     ccall((:ibv_create_ah, libibverbs), Ptr{ibv_ah}, (Ptr{ibv_pd}, Ptr{ibv_ah_attr}), pd, attr)
 end
@@ -3636,6 +3632,12 @@ export ibv_post_recv
 function ibv_post_recv(qp, wr, bad_wr)
     f = get_context_op(qp, :post_recv)
     ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_recv_wr}, Ptr{Ptr{ibv_recv_wr}}), qp, wr, bad_wr)
+end
+
+export ibv_post_send
+function ibv_post_send(qp, wr, bad_wr)
+    f = get_context_op(qp, :post_send)
+    ccall(f, Cint, (Ptr{ibv_qp}, Ptr{ibv_send_wr}, Ptr{Ptr{ibv_send_wr}}), qp, wr, bad_wr)
 end
 
 export ibv_query_device_ex
