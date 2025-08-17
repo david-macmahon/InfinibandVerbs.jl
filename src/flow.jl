@@ -1,7 +1,7 @@
 struct FlowRule
     attr::ibv_flow_attr
     spec_eth::ibv_flow_spec_eth
-    spec_ipv4::ibv_flow_spec_ipv4
+    spec_ipv4_ext::ibv_flow_spec_ipv4_ext
     spec_tcp_udp::ibv_flow_spec_tcp_udp
 end
 
@@ -14,11 +14,11 @@ function get_mask(::Type{T}, val) where T<:Unsigned
 end
 
 function FlowRule(port_num;
-    flow_type=:normal, priority=0, flags=0,
+    flow_type=:normal, priority=0, flow_flags=0,
     dmac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     smac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     ethtype=0, vlan=0,
-    sip=0, dip=0,
+    sip=0, dip=0, proto=0, tos=0, ttl=0, flags=0,
     dport=0, sport=0, tcpudp=:udp
 )
     # Convert/sanity check flow_type
@@ -43,6 +43,10 @@ function FlowRule(port_num;
     vlan_mask = get_mask(UInt16, vlan)
     sip_mask = get_mask(UInt32, sip)
     dip_mask = get_mask(UInt32, dip)
+    proto_mask = get_mask(UInt8, proto)
+    tos_mask = get_mask(UInt8, tos)
+    ttl_mask = get_mask(UInt8, ttl)
+    flags_mask = get_mask(UInt8, flags)
     dport_mask = get_mask(UInt16, dport)
     sport_mask = get_mask(UInt16, sport)
 
@@ -56,12 +60,12 @@ function FlowRule(port_num;
             sizeof(ibv_flow_spec_eth)
     end
 
-    if sip != 0 || dip != 0
+    if sip != 0 || dip != 0 || proto != 0 || tos != 0 || ttl != 0 || flags != 0
         # May be overridden below
         num_specs = 2
         rule_size = sizeof(ibv_flow_attr) +
             sizeof(ibv_flow_spec_eth) +
-            sizeof(ibv_flow_spec_ipv4)
+            sizeof(ibv_flow_spec_ipv4_ext)
     end
 
     if dport != 0 || sport != 0
@@ -69,7 +73,7 @@ function FlowRule(port_num;
         num_specs = 3
         rule_size = sizeof(ibv_flow_attr) +
             sizeof(ibv_flow_spec_eth) +
-            sizeof(ibv_flow_spec_ipv4) +
+            sizeof(ibv_flow_spec_ipv4_ext) +
             sizeof(ibv_flow_spec_tcp_udp)
     end
 
@@ -81,7 +85,7 @@ function FlowRule(port_num;
             priority,  # priority::UInt16
             num_specs, # num_of_specs::UInt8
             port_num,  # port::UInt8
-            flags      # flags::UInt32
+            flow_flags # flags::UInt32
         ),
         ibv_flow_spec_eth(
             IBV_FLOW_SPEC_ETH,
@@ -93,11 +97,15 @@ function FlowRule(port_num;
                 dmac_mask, smac_mask, ethtype_mask, vlan_mask
             )
         ),
-        ibv_flow_spec_ipv4(
-            IBV_FLOW_SPEC_IPV4,
-            sizeof(ibv_flow_spec_ipv4),
-            ibv_flow_ipv4_filter(htobe32(sip), htobe32(dip)),
-            ibv_flow_ipv4_filter(sip_mask, dip_mask)
+        ibv_flow_spec_ipv4_ext(
+            IBV_FLOW_SPEC_IPV4_EXT,
+            sizeof(ibv_flow_spec_ipv4_ext),
+            ibv_flow_ipv4_ext_filter(
+                htobe32(sip), htobe32(dip), Integer(proto), tos, ttl, flags
+            ),
+            ibv_flow_ipv4_ext_filter(
+                sip_mask, dip_mask, proto_mask, tos_mask, ttl_mask, flags_mask
+            )
         ),
         ibv_flow_spec_tcp_udp(
             tcp_udp_flow_type,
@@ -129,7 +137,7 @@ manual page for `ibv_create_flow` for more details.
 - General flow rule attributes:
   - `flow_type` one of `:normal` (default), `:all`, `:mc`, or `:sniffer`
   - `priority` defaults to 0
-  - `flags` defaults to 0
+  - `flow_flags` defaults to 0
 ## Selectors
 Keyword arguments that are unspecified (or zero) are not used for matching.
 Integer values will be converted to network byte order as necessary.
@@ -139,28 +147,31 @@ Integer values will be converted to network byte order as necessary.
     - `ethtype`: EtherType value to match (e.g. `0x0800` for IPv4 packets)
     - `vlan`: VLAN tag to match
   - IPv4 layer selectors (can be `UInt32` or `IPv4`)
-    - `sip` source IPv4 address (e.g. `0x0a000123` or `ip"10.0.1.35"`)
-    - `dip` destination IPv4 address
+    - `sip`: source IPv4 address (e.g. `0x0a000123` or `ip"10.0.1.35"`)
+    - `dip`: destination IPv4 address
+    - `proto`: IP protocol
+    - `tos`: Type of service (aka DSCP/ECN)
+    - `ttl`: Time to live
+    - `flags`: IP flags
   - TCP/UDP layer selectors
     - `dport`: destination TCP/UDP port to match
     - `sport`: source TCP/UDP port to match
     - `tcpudp`: one of `:udp` (default) or `:tcp`.  Specifies whether
-      `sport`/`dport` are UDP or TCP ports.  You must pass a non-zero `dport`
-      and/or `sport` to match UDP or TCP packets specifically.  Matching all UDP
-      and/or all TCP packets is not (yet) supported.
+      `sport`/`dport` should match UDP or TCP ports.  To match all UDP or all
+      TCP packets, use the IPv4 layer `proto` selector instead.
 """
 function create_flow(qp, port_num;
-    flow_type=:normal, priority=0, flags=0,
+    flow_type=:normal, priority=0, flow_flags=0,
     dmac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     smac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     ethtype=0, vlan=0,
-    sip=0, dip=0,
+    sip=0, dip=0, proto=0, tos=0, ttl=0, flags=0,
     dport=0, sport=0, tcpudp=:udp
 )
     flow_rule = Ref(FlowRule(port_num;
-        flow_type, priority, flags,
+        flow_type, priority, flow_flags,
         dmac, smac, ethtype, vlan,
-        sip, dip,
+        sip, dip, proto, tos, ttl, flags,
         dport, sport, tcpudp
     ))
 
@@ -169,19 +180,19 @@ function create_flow(qp, port_num;
 end
 
 function create_flow(ctx;
-    flow_type=:normal, priority=0, flags=0,
+    flow_type=:normal, priority=0, flow_flags=0,
     dmac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     smac::NTuple{6, UInt8}=(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
     ethtype=0, vlan=0,
-    sip=0, dip=0,
+    sip=0, dip=0, proto=0, tos=0, ttl=0, flags=0,
     dport=0, sport=0, tcpudp=:udp
 )
     create_flow(ctx.qp, ctx.port_num;
-        flow_type, priority, flags,
+        flow_type, priority, flow_flags,
         dmac,
         smac,
         ethtype, vlan,
-        sip, dip,
+        sip, dip, proto, tos, ttl, flags,
         dport, sport, tcpudp
     )
 end
