@@ -175,7 +175,7 @@ function create_flow(qp, port_num;
         dport, sport, tcpudp
     ))
 
-    flow_rule_ptr = Ptr{ibv_flow_attr}(pointer_from_objref(flow_rule))
+    flow_rule_ptr = Base.unsafe_convert(Ptr{FlowRule}, flow_rule)
     @GC.preserve flow_rule ibv_create_flow(qp, flow_rule_ptr)
 end
 
