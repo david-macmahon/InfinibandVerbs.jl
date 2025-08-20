@@ -38,12 +38,12 @@ recv_buf = zeros(UInt8, mtu, npkts_max);
 recv_wrs, _sges, _mrs = create_recv_wrs(ctx, [recv_buf], num_wr; post=true);
 
 #---
-# Define our recv_loop callback function
+# Define our repost_loop callback function
 
 # Process work completions for all posted WRs.  For this demo we will be
 # determining how many WRs to re-post (up to a total of num_pkt WRs) and
 # updating their SGEs to point to the next packet location is `recv_heads`.
-function recv_loop_callback(wcs, num_wc, recv_wrs, # Required parameters
+function recv_callback(wcs, num_wc, recv_wrs, # Required parameters
     # User args follow
     runloop::Ref{Bool},     # Ref{Bool} that callback uses to stop
     recv_heads,             # A view of packet "heads", i.e. `@view recv_buf[1,:]
@@ -55,7 +55,7 @@ function recv_loop_callback(wcs, num_wc, recv_wrs, # Required parameters
     # Keep running?
     runloop[] || return -1
 
-    # Report each work completion (not normally done in recv_loop_callback!)
+    # Report each work completion (not normally done in a repost_loop callback!)
     for wcidx = 1:num_wc
         pktidx = npkts_done[] + wcidx
         # Save length (use 0 if WC has non-success status)
@@ -102,7 +102,7 @@ end
 sniffer_flow = create_flow(ctx; flow_type=:sniffer)
 
 #---
-# Run recv_loop
+# Run repost_loop
 
 timeout_ms = 2000
 runloop = Ref(true)
@@ -111,12 +111,12 @@ npkts_posted = Ref(num_wr)
 npkts_done = Ref(0)
 pktlengths = zeros(Int, npkts_max)
 
-recvtask = Threads.@spawn InfinibandVerbs.recv_loop(
+recvtask = Threads.@spawn InfinibandVerbs.repost_loop(
     # required args
-    $recv_loop_callback, # user callback function
-    $ctx,                # our Context struct
-    $recv_wrs,           # our Vector of recv WRs
-    $timeout_ms,         # Timeout value (periodic, not absolute)
+    $recv_callback, # user callback function
+    $ctx,           # our Context struct
+    $recv_wrs,      # our Vector of recv WRs
+    $timeout_ms,    # Timeout value (periodic, not absolute)
     # user callback args (cb_args) follow
     $runloop,      # Ref{Bool} that callback uses to stop
     $recv_heads,   # A view of packet "heads", i.e. `@view recv_buf[1,:]

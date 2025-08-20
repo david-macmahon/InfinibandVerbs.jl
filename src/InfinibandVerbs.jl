@@ -14,6 +14,9 @@ export reg_mr, create_sges, create_recv_wrs, create_send_wrs, post_wrs,
 # exports for flow.jl functions
 export create_flow, destroy_flow
 
+# exports for repostloop.jl functions
+export repost_loop
+
 # Include Clang-generated API wrappers
 include("api.jl")
 using .API
