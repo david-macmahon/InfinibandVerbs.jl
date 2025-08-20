@@ -1,22 +1,29 @@
 # InfinibandVerbs.jl
 
-## [Infiniband Verbs][] for [Julia][]
+*[Infiniband verbs][] for [Julia][]*
+
+## Overview
 
 The [`InfinibandVerbs.jl`][] package provides a convenient and flexible way to
-utilize Infiniband Verbs from Julia.  Packets are transferred via
+utilize Infiniband verbs from Julia.  Packets are transferred via
 direct-memory-access (DMA) to/from the network interface card (NIC) directly
 from/to pre-allocated Julia Arrays, bypassing the kernel (aka *kernel bypass*).
 This high level interface hides many of the complexities typically involved when
-using Infiniband Verbs, but the low level interface of the underlying Infiniband
-Verbs library [`libibverbs`][] is readily available if more specialized
-operations are needed.  The primary use case targeted by this package is
-sending/receiving UDP packets at very high data rates directly from/to Julia
-Arrays.
+using Infiniband verbs, but the low level interface of the underlying Infiniband
+verbs library [`libibverbs`][] is readily available if more specialized
+operations are needed.
 
-The high level interface is implemented in the `InfinibandVerbs` module.  The
-low level interface is implemented in the `InfinibandVerbs.API` module which is
-a [`Clang.jl`][]-generated module that wraps the Infiniband Verbs API
-implemented in the `libibverbs` library from the [`rdma-core`][] project.  The
+Although Infiniband verbs was originally developed around the [Infiniband][]
+networking protocol, it now supports both Infiniband and [Ethernet][] networks.
+The primary use case targeted by `InfinibandVerbs.jl` is sending/receiving UDP
+packets over Ethernet at very high (and sustained) data rates directly from/to
+Julia Arrays.
+
+`InfinibandVerbs.jl` provides a convenient high level interface in the
+`InfinibandVerbs` module.  The high level interface uses the low level interface
+defined in the `InfinibandVerbs.API` module.  `InfinibandVerbs.API` is a
+[`Clang.jl`][]-generated module that wraps the Infiniband verbs API implemented
+in the `libibverbs` library from the [`rdma-core`][] project.  The
 `InfinibandVerbs.jl` package uses `rdma-core` libraries from a pre-built Julia
 JLL package.  An `rdma-core` package for the host OS does NOT need to be
 installed (it will be ignored if present), but an RDMA compatible network
@@ -27,23 +34,22 @@ The underlying `rdma-core` libraries are only available for Linux, so
 
 ## Current Status
 
-- The high level interface provided by `InfinibandVerbs.jl` only supports
-  receiving packets
-- Packet transmission will be coming soon
+- The high level interface provided by `InfinibandVerbs.jl` supports both
+  sending and receiving packets
 - The low level interface in `InfinibandVerbs.API` is a nearly complete
   `Clang.jl`-generated wrapping of the `libibverbs` library.  Not surprisingly,
   the low level interface follows the C interface very closely
-- Sample scripts showing basic usage of the low level API are available in the
-  `bin` directory
-- Sample scripts showcasing the high level interface will be coming soon.
+- Sample scripts showing basic usage of the low level API and the receive side
+  of the high level API are available in the [`bin`][] directory.  These will
+  likely be moved to a separate package eventually.
 - Files are included under the `contrib` directory to facilitate the use of
   `RAW_PACKET` queue pairs (QPs).  See below for more information.
 
 ## Future Plans
 
-In addition to the "coming soon" items mentioned above, a package extension is
-planned that will facilitate using `InfinibandVerbs.jl` with [`PoolQueues.jl`][]
-to source/sink packets from/to a computational pipeline.
+A package extension is planned that will facilitate using `InfinibandVerbs.jl`
+with [`PoolQueues.jl`][] to source/sink data between the network and a
+computational pipeline.
 
 While the high level functions already have extensive doc strings accessible
 from the Julia REPL (and within VS Code), proper web based documentation that
@@ -105,7 +111,7 @@ is `==` to `C_NULL`.
 
 Here is an example showing the output of `setpriv -d` for a working setup:
 
-```
+```plaintext
 julia> run(`setpriv -d`)
 [...]
 Inheritable capabilities: net_raw
@@ -135,11 +141,14 @@ will also need to:
    wrapper script so that the worker processes will have the `CAP_NET_RAW`
    capability
 
-[Infiniband Verbs]: https://en.wikipedia.org/wiki/InfiniBand#Software_interfaces
+[Infiniband verbs]: https://en.wikipedia.org/wiki/InfiniBand#Software_interfaces
 [Julia]: https://julialang.org/
 [`InfinibandVerbs.jl`]: https://github.com/david-macmahon/InfinibandVerbs.jl
 [`libibverbs`]: https://github.com/linux-rdma/rdma-core/blob/master/Documentation/libibverbs.md
+[Infiniband]: https://en.wikipedia.org/wiki/InfiniBand
+[Ethernet]: https://en.wikipedia.org/wiki/Ethernet
 [`Clang.jl`]: https://github.com/JuliaInterop/Clang.jl
 [`rdma-core`]: https://github.com/linux-rdma/rdma-core/
+[`bin`]: https://github.com/david-macmahon/InfinibandVerbs.jl/tree/main/bin
 [`PoolQueues.jl`]: https://github.com/david-macmahon/PoolQueues.jl
 [capabilities]: https://sites.google.com/site/fullycapable/
