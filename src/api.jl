@@ -3749,6 +3749,26 @@ function Base.getindex(p::Ptr{Ptr{T}})::Ptr{T} where {T<:Union{ibv_send_wr, ibv_
     unsafe_load(p)
 end
 
+"""
+    a[idx, name] = val
+    setindex!(a::AbstractArray{T}, val, idx, name) where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+
+Perform an `unsafe_store!` of `val` to the `name` property of `x[i]`.
+
+`idx` must be an `Integer` or a `CartesianIndex` suitable for `a`.  `name` must
+be a `Symbol`.  `val` must be an appropriate type for the specified
+property.  This function should be considered "unsafe" in the same sense as
+`unsafe_store!`.  No bounds checking is done on `idx` when it is an `Integer`.
+"""
+function Base.setindex!(a::AbstractArray{T}, val, idx::Integer, name::Symbol)::Ptr{T} where {T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    setproperty!(pointer(a, idx), name, val)
+end
+
+function Base.setindex!(a::AbstractArray{T,N}, val, cidx::CartesianIndex{N}, name::Symbol)::Ptr{T} where {N, T<:Union{ibv_send_wr, ibv_recv_wr, ibv_sge}}
+    idx = LinearIndices(a)[cidx]
+    setindex!(a, val, idx, name)
+end
+
 function Base.show(io::IO, wr::T) where T<:Union{ibv_send_wr,ibv_recv_wr}
     compact = get(io, :compact, false)
     print(io, nameof(T), "(", wr.wr_id, ", next->")
