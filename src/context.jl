@@ -5,14 +5,16 @@ struct Context
     context::Ptr{ibv_context}
     pd::Ptr{ibv_pd}
 
-    recv_comp_channel::Ptr{ibv_comp_channel}
     send_comp_channel::Ptr{ibv_comp_channel}
+    recv_comp_channel::Ptr{ibv_comp_channel}
 
     recv_cq::Ptr{ibv_cq}
     send_cq::Ptr{ibv_cq}
 
     qp::Ptr{ibv_qp}
 
+    send_cge::UInt32
+    recv_cge::UInt32
     max_send_wr::UInt32
     max_recv_wr::UInt32
     max_send_sge::UInt32
@@ -26,55 +28,72 @@ end
 """
     Context(dev_name, port_num; <kwargs>)
 
-Create a `Context` object to use InfinibandVerbs on `port_num` of `dev_name`.
+Create a `Context` object to use Infiniband Verbs on `port_num` of `dev_name`.
 
-Create various InfinibandVerbs objects and return them in a `Context` instance.
 Keyword arguments, described in the extended help, control various aspects of
-the created objects.
-
-This `Context` constructor creates the following libibverbs objects:
-
-- `context::Ptr{ibv_context}` - Context
-- `pd::Ptr{ibv_pd}` - Protection domain
-- `recv_comp_channel::Ptr{ibv_comp_channel}` - Receive completion channel
-- `send_comp_channel::Ptr{ibv_comp_channel}` - send completion channel
-- `recv_cq::Ptr{ibv_cq}` - Receive completion queue
-- `send_cq::Ptr{ibv_cq}` - Send completion queue
-- `qp::Ptr{ibv_qp}` - Queue pair
-
-Completion notifications on `send_cq` or `recv_cq` are not requested by this
-constructor, but the caller may request them using [`req_notify_send_cq`](@ref)
-or [`req_notify_recv_cq`](@ref) as desired.  Upon successful return, the
-`Context`'s queue pair will be in the `IBV_QPS_INIT` state.
+the created objects.  Their default values request minimal resources, but
+non-trivial applications will need to request more resources depending on the
+application's needs.  Upon successful return, the `Context`'s queue pair will be
+in the `IBV_QPS_INIT` state.
 
 # Extended help
 
-The following keyword arguments can be used to control various sizing aspects of
-the created objects.  They default to 1 if not specified.  Set to -1 to use the
-device's maximum supported value.  The actual QP values for the `max_...`
-keyword arguments will be stored in the returned `Context` object.  These QP
-values will be greater than or equal to the requested values.
+The `Context` structure manages the following fields (so you don't have to):
 
-- `force`: if true, allow `dev_name:port_num` to be inactive (default `false`)
-- `send_cqe`, `recv_cqe`: Sizing for send/recev completion queues
-- `max_send_wr`, `max_recv_wr`: Sizing for send/receive queues
-- `max_send_sge`, `max_recv_sge`: max SGE for send/receive WR sg_lists
+| Field name | Type                             | Description
+|:-----------|:---------------------------------|:-----------
+| `context`  | `Ptr{ibv_context}`               | Context from C library
+| `pd`       | `Ptr{ibv_pd}`                    | Protection domain
+| `send_comp_channel` | `Ptr{ibv_comp_channel}` | Send completion channel
+| `recv_comp_channel` | `Ptr{ibv_comp_channel}` | Receive completion channel
+| `send_cq`  | `Ptr{ibv_cq}`                    | Send completion queue
+| `recv_cq`  | `Ptr{ibv_cq}`                    | Receive completion queue
+| `qp`       | `Ptr{ibv_qp}`                    | Queue pair
+| `send_wcs` | `Vector{ibv_wc}`                 | Send work completions
+| `recv_wcs` | `Vector{ibv_wc}`                 | Recv work completions
 
-Completion notifications can be requested separately for send and receive
-completion channels via `req_notify_send` and `rec_notify_recv`, both default to
-`true`.  The `solicited_only` option of those notification requests can be
-specified by `solicited_only_send` and `solicited_only_recv`, both default to
-`false`.
+The following fields of the `Context` structure hold sizing information:
 
-- `req_notify_send`, `req_notify_recv`: request CQ notification
-- `solicited_only_send`, `solicited_only_recv`: options for CQ notifications
+| Field name        | Type     | Description
+|:------------------|:---------|:-----------
+| `send_cqe`        | `UInt32` | Number of send completion queue events
+| `recv_cqe`        | `UInt32` | Number of recv completion queue events
+| `max_send_wr`     | `UInt32` | Max number of posted send work requests
+| `max_recv_wr`     | `UInt32` | Max number of posted recv work requests
+| `max_send_sge`    | `UInt32` | Max number of SGEs per send work request
+| `max_recv_sge`    | `UInt32` | Max number of SGEs per recv work request
+| (!) `max_inline_data` | `UInt32` | Maximum amount of inline data
 
-Expert mode (change at your own risk)
+The `Context` constructor supports the following keyword arguments:
 
-- `comp_vector=0`: TODO make separate send/recv comp_vectors?
-- `max_inline_data=0`
-- `qp_type=IBV_QPT_RAW_PACKET`
+| Keyword argument      | Default | Description
+|:----------------------|:-------:|:-----------
+| `force`               | `false` | Allow `dev_name:port_num` to be inactive
+| (-) `send_cqe`        | `1`     | Number of events for send completion queue
+| (-) `recv_cqe`        | `1`     | Number of events for recv completion queue
+| (-) `max_send_wr`     | `1`     | Maximum number of send work requests
+| (-) `max_recv_wr`     | `1`     | Maximum number of recv work requests
+| (-) `max_send_sge`    | `1`     | Maximum number of SGEs for send WR sg_lists
+| (-) `max_recv_sge`    | `1`     | Maximum number of SGEs for recv WR sg_lists
+| `req_notify_send`     | `true`  | Request send CQ notifications
+| `req_notify_recv`     | `true`  | Request recv CQ notifications
+| `solicited_only_send` | `false` | `solicited_only` for send CQ notifications
+| `solicited_only_recv` | `false` | `solicited_only` for recv CQ notifications
+| (!) `comp_vector`     | `0`     | Completion queue `comp_vector`
+| (!) `max_inline_data` | `0`     | Maximum inline data for QP
+| (!) `qp_type`         | `IBV_QPT_RAW_PACKET` | QP type
 
+!!! info
+
+    Keyword arguments marked with (-) can be passed as `-1` to use the device's
+    maximum supported value, which can be retrieved from the `Context` field of
+    the same name once constructed.  The actual values will be greater than or
+    equal to the requested values.
+
+!!! warning
+
+    Fields and keyword arguments marked with (!) are for expert use.  Use and/or
+    change at your own risk.
 """
 function Context(dev_name, port_num; force=false,
     send_cqe=1, recv_cqe=1, # sizing for send/recv completion queues
@@ -131,8 +150,14 @@ function Context(dev_name, port_num; force=false,
     recv_cq == C_NULL && throw(SystemError("ibv_create_cq [recv]"))
 
     # Request notifications on the completion queues as desired
-    req_notify_send && ibv_req_notify_cq(send_cq, solicited_only_send)
-    req_notify_recv && ibv_req_notify_cq(recv_cq, solicited_only_recv)
+    if req_notify_send
+        errno = ibv_req_notify_cq(send_cq, solicited_only_send)
+        errno == 0 || throw(SystemError("ibv_req_notify_cq [send]", errno))
+    end
+    if req_notify_recv
+        errno = ibv_req_notify_cq(recv_cq, solicited_only_recv)
+        errno == 0 || throw(SystemError("ibv_req_notify_cq [recv]", errno))
+    end
 
     # Create queue pair (aka QP, starts in RESET state)
     qpinitattr = Ref(ibv_qp_init_attr(
@@ -166,9 +191,10 @@ function Context(dev_name, port_num; force=false,
     errno == 0 || throw(SystemError("ibv_modify_qp", errno))
 
      Context(dev_name, port_num, context, pd,
-        recv_comp_channel, send_comp_channel,
-        recv_cq, send_cq,
+        send_comp_channel, recv_comp_channel,
+        send_cq, recv_cq,
         qp,
+        send_cqe, recv_cqe,
         qpinitattr[].cap.max_send_wr, qpinitattr[].cap.max_recv_wr,
         qpinitattr[].cap.max_send_sge, qpinitattr[].cap.max_recv_sge,
         qpinitattr[].cap.max_inline_data,
@@ -279,7 +305,7 @@ end
 Attempt to modify the state of `ctx`'s QP to `qp_state`.
 
 The `qp_state` parameter may be an `ibv_qp_state` enum value or one of the
-following symbols: `:reset`, `:init`, `:rtr`, `:rts`, :`sqd`.  Currently no
+following symbols: `:reset`, `:init`, `:rtr`, `:rts`, `:sqd`.  Currently no
 checking is performed to verify that the current QP state allows a transition to
 the given `qp_state`.  A `SystemError` will be thrown if an error occurs,
 otherwise the actual state of the QP is returned (which should equal
