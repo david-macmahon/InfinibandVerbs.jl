@@ -1,6 +1,7 @@
 # InfinibandVerbs.jl
-
 *[Infiniband verbs][] for [Julia][]*
+
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://david-macmahon.github.io/InfinibandVerbs.jl/dev)
 
 ## Overview
 
@@ -13,11 +14,11 @@ using Infiniband verbs, but the low level interface of the underlying Infiniband
 verbs library [`libibverbs`][] is readily available if more specialized
 operations are needed.
 
-Although Infiniband verbs was originally developed around the [Infiniband][]
-networking protocol, it now supports both Infiniband and [Ethernet][] networks.
-The primary use case targeted by `InfinibandVerbs.jl` is sending/receiving UDP
-packets over Ethernet at very high (and sustained) data rates directly from/to
-Julia Arrays.
+Although the concept of Infiniband verbs was originally developed around the
+[Infiniband][] networking protocol, it now supports both Infiniband and
+[Ethernet][] networks.  The primary use case for `InfinibandVerbs.jl` is
+sending/receiving UDP packets over Ethernet at very high (and sustained) data
+rates directly from/to Julia Arrays.
 
 `InfinibandVerbs.jl` provides a convenient high level interface in the
 `InfinibandVerbs` module.  The high level interface uses the low level interface
@@ -34,8 +35,9 @@ The underlying `rdma-core` libraries are only available for Linux, so
 
 ## Current Status
 
+- Under-construction documentation is [available online][dev docs].
 - The high level interface provided by `InfinibandVerbs.jl` supports both
-  sending and receiving packets
+  sending and receiving packets.
 - The low level interface in `InfinibandVerbs.API` is a nearly complete
   `Clang.jl`-generated wrapping of the `libibverbs` library.  Not surprisingly,
   the low level interface follows the C interface very closely
@@ -44,16 +46,16 @@ The underlying `rdma-core` libraries are only available for Linux, so
   likely be moved to a separate package eventually.
 - Files are included under the `contrib` directory to facilitate the use of
   `RAW_PACKET` queue pairs (QPs).  See below for more information.
-
+.
 ## Future Plans
 
 A package extension is planned that will facilitate using `InfinibandVerbs.jl`
 with [`PoolQueues.jl`][] to source/sink data between the network and a
 computational pipeline.
 
-While the high level functions already have extensive doc strings accessible
-from the Julia REPL (and within VS Code), proper web based documentation that
-ties all the pieces together more cogently will be developed.
+The [online documentation][dev docs] will be expanded to provide more details,
+especially the relationships between the send/receive buffers and the
+corresponding work requests (WRs).
 
 ## Notes on CAP_NET_RAW capability
 
@@ -149,6 +151,7 @@ will also need to:
 [Ethernet]: https://en.wikipedia.org/wiki/Ethernet
 [`Clang.jl`]: https://github.com/JuliaInterop/Clang.jl
 [`rdma-core`]: https://github.com/linux-rdma/rdma-core/
+[dev docs]: https://david-macmahon.github.io/InfinibandVerbs.jl/dev
 [`bin`]: https://github.com/david-macmahon/InfinibandVerbs.jl/tree/main/bin
 [`PoolQueues.jl`]: https://github.com/david-macmahon/PoolQueues.jl
 [capabilities]: https://sites.google.com/site/fullycapable/

@@ -39,11 +39,11 @@ create_flow
 destroy_flow
 ```
 
-## Lesser directly-used functions
+## Less frequently used functions
 
-These functions see less direct use because they are called by more commonly
-used functions, but sometimes the more commonly used functions expose parameters
-that are passed on to these functions.
+These functions are not directly used so frequently because they are called by
+more commonly used functions.  Sometimes the more commonly used functions expose
+parameters that are passed on to these functions so they are documented here.
 
 ```@docs
 create_sges
