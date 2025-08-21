@@ -10,3 +10,10 @@ rdma_core_jll = "69dc3629-5c98-505f-8bcd-225213cebe70"
 [compat]
 CEnum = "0.4,0.5"
 rdma_core_jll = "= 58.0.0"
+Test = "1.11.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
