@@ -205,10 +205,10 @@ end
 function Base.show(io::IO, ctx::Context)
     compact = get(io, :compact, false)
     print(io, "Context(", ctx.dev_name, ":", ctx.port_num,
-        ", ", compact ? "" : "max WRxSGE send/recv ",
+        ", ", compact ? "" : "max send/recv ",
         ctx.max_send_wr, "x", ctx.max_send_sge,
         "/", ctx.max_recv_wr, "x", ctx.max_recv_sge,
-        ")"
+        " WRxSGE)"
     )
 end
 
