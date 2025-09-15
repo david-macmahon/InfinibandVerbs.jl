@@ -464,33 +464,85 @@ function wait_for_recv_completion_event(ctx::Context, solicited_only::Bool)
 end
 
 """
-    query_device(ctx::Context) -> ibv_device_attr
+    query_device(ctx) -> ibv_device_attr
 
-Return attributes of the Context's device.
+Return attributes of the device corresponding to `ctx`.
 
 Call `ibv_query_device` and return an `ibv_device_attr` (or throw `SystemError`
-on error).
+on error).  `ctx` may be a `Ptr{ibv_context}` or a `Context` structure.
 """
-function query_device(ctx::Context)
+function query_device(ctx::Ptr{ibv_context})
     dev_attr_ref = Ref{ibv_device_attr}()
-    errno = ibv_query_device(ctx.context, dev_attr_ref)
+    errno = ibv_query_device(ctx, dev_attr_ref)
     errno == 0 || throw(SystemError("ibv_query_device", errno))
     dev_attr_ref[]
 end
 
-"""
-    query_device_ex(ctx::Context) -> ibv_device_attr_ex
+function query_device(ctx::Context)
+    query_device(ctx.context)
+end
 
-Return extended attributes of the Context's device.
-
-Call `ibv_query_device_ex` and return an `ibv_device_attr_ex` (or throw
-`SystemError` on error).
 """
-function query_device_ex(ctx::Context)
+    query_device(dev_name::AbstractString) -> ibv_device_attr
+
+Return attributes of device `dev_name`.
+"""
+function query_device(dev_name::AbstractString)
+    open_device_by_name(query_device, dev_name)
+end
+
+"""
+    query_device_ex(ctx) -> ibv_device_attr_ex
+
+Return extended attributes of device associated with `ctx`.
+
+`ctx` may be `Context` or `Ptr{ibv_context}`.  Return an `ibv_device_attr_ex`
+(or throw `SystemError` on error).
+"""
+function query_device_ex(ctx::Ptr{ibv_context})
     dev_attr_ex_ref = Ref{ibv_device_attr_ex}()
-    errno = ibv_query_device_ex(ctx.context, C_NULL, dev_attr_ex_ref)
+    errno = ibv_query_device_ex(ctx, C_NULL, dev_attr_ex_ref)
     errno == 0 || throw(SystemError("ibv_query_device_ex", errno))
     dev_attr_ex_ref[]
+end
+
+"""
+    query_device_ex(dev_name) -> ibv_device_attr_ex
+
+Return extended attributes of device `dev_name`.
+
+Device `dev_name` will be opened, queried, and closed before returning.
+"""
+function query_device_ex(ctx::Context)
+    query_device_ex(ctx.context)
+end
+
+"""
+    query_device_ex(dev_name::AbstractString) -> ibv_device_attr
+
+Return extended attributes of device `dev_name`.
+"""
+function query_device_ex(dev_name::AbstractString)
+    open_device_by_name(query_device_ex, dev_name)
+end
+
+"""
+    query_port(ctx::Ptr{ibv_context}, port_name) -> ibv_port_attr
+    query_port(dev_name::AbstractString, port_num) -> ibv_port_attr
+
+Return attributes of port `port_num` of `ctx` or device `dev_name`.
+
+Throws `SystemError` on error.
+"""
+function query_port(context::Ptr{ibv_context}, port_num)
+    port_attr_ref = Ref{ibv_port_attr}()
+    errno = ibv_query_port(context, port_num, port_attr_ref)
+    errno == 0 || throw(SystemError("ibv_query_port", errno))
+    port_attr_ref[]
+end
+
+function query_port(dev_name::AbstractString, port_num)
+    open_device_by_name(ctx->query_port(ctx, port_num), dev_name)
 end
 
 """
@@ -498,14 +550,10 @@ end
 
 Return attributes of the Context's port.
 
-Call `ibv_query_port` and return an `ibv_port_attr` (or throw `SystemError` on
-error).
+Throw `SystemError` on error.
 """
 function query_port(ctx::Context)
-    port_attr_ref = Ref{ibv_port_attr}()
-    errno = ibv_query_port(ctx.context, ctx.port_num, port_attr_ref)
-    errno == 0 || throw(SystemError("ibv_query_port", errno))
-    port_attr_ref[]
+    query_port(ctx.context, ctx.port_num)
 end
 
 """
