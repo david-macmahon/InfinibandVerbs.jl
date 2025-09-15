@@ -557,9 +557,12 @@ function query_port(ctx::Context)
 end
 
 """
-    hascapability(ctx::Context, cap)
+    hascapability(ctx::Ptr{ibv_context}, cap) -> Bool
+    hascapability(ctx::Context, cap) -> Bool
+    hascapability(dev_name::AbstractString, cap) -> Bool
 
-Return `true` if the device corresponding to `ctx` has capability `cap`.
+Return `true` if the device corresponding to `ctx` or `dev_name` has capability
+`cap`.
 
 `cap` may be any one (and only one) of the `ibv_device_cap_flags` or
 `ibv_raw_packet_caps` flags.
@@ -600,12 +603,28 @@ Return `true` if the device corresponding to `ctx` has capability `cap`.
 | `IBV_RAW_PACKET_CAP_IP_CSUM`         |
 | `IBV_RAW_PACKET_CAP_DELAY_DROP`      |
 """
-function hascapability(ctx::Context, devcap::ibv_device_cap_flags)::Bool
+function hascapability(ctx::Ptr{ibv_context}, devcap::ibv_device_cap_flags)::Bool
     dev_attr = query_device(ctx)
     (dev_attr.device_cap_flags & devcap) == devcap
 end
 
-function hascapability(ctx::Context, rawcap::ibv_raw_packet_caps)::Bool
+function hascapability(ctx::Context, devcap::ibv_device_cap_flags)::Bool
+    hascapability(ctx.context, devcap)
+end
+
+function hascapability(dev_name::AbstractString, devcap::ibv_device_cap_flags)::Bool
+    open_device_by_name(ctx->hascapability(ctx, devcap), dev_name)
+end
+
+function hascapability(ctx::Ptr{ibv_context}, rawcap::ibv_raw_packet_caps)::Bool
     dev_attr_ex = query_device_ex(ctx)
     (dev_attr_ex.raw_packet_caps & rawcap) == rawcap
+end
+
+function hascapability(ctx::Context, rawcap::ibv_raw_packet_caps)::Bool
+    hascapability(ctx.context, rawcap)
+end
+
+function hascapability(dev_name::AbstractString, rawcap::ibv_raw_packet_caps)::Bool
+    open_device_by_name(ctx->hascapability(ctx, rawcap), dev_name)
 end
