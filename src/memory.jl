@@ -45,39 +45,39 @@ matrix_reshape(m::AbstractMatrix) = m # Matrices need no reshaping
 Return a `Matrix{ibv_sge}` of size `(length(bufs), num_wr)`.
 
 Each column of the returned Matrix is an SG list initialized to point to the
-first `num_wr` packets of `bufs`.  Both `bufs` and `lkeys` must be Vectors of
-the same length.  The elements of `bufs` are Arrays that must be sized for the
-same number of packets and `num_wr` must not exceed this number.  The elements
-of `lkeys` must be the `lkey` values corresponding to the registered memory
-regions for `bufs`.
+first `num_wr` packets of `bufs`.  Both `bufs` and `lkeys` must be Tuples of the
+same length.  The elements of `bufs` are AbstractArrays that must be sized for
+the same number of packets and `num_wr` must not exceed this number.  The
+elements of `lkeys` must be the `lkey` values corresponding to the registered
+memory regions for `bufs`.
 
 The Arrays in `bufs` may include a number of padding bytes along their first
 dimension to improve alignment of the packet data.  The number of padding bytes
 may be specified by passing `npad`.  `npad` may be a single `Int` to apply the
-same value to all `bufs` Arrays or a `Vector{Int}` to specify values for all the
-`bufs` Array.  The default value of `npad` is `0` (i.e. no padding).  The
-value(s) of `npad` will be subtracted from the number of bytes in the first
-dimensions of the `bufs` Array.
+same value to all `bufs` Arrays or an `NTuple{N,Int}` to specify values for all
+the `bufs`.  The default value of `npad` is `0` (i.e. no padding).  The value(s)
+of `npad` will be subtracted from the number of bytes in the first
+dimensions of the `bufs` Array when specifying the length of the corresponding
+scatter-gather element (SGE).
 """
 function create_sges(
-    bufs::AbstractVector{<:AbstractArray},
-    lkeys::AbstractVector{<:Integer},
+    bufs::NTuple{N, AbstractArray},
+    lkeys::NTuple{N, Integer},
     num_wr::Integer,
-    npad::Union{Integer, Vector{<:Integer}}=0
-)::Matrix{ibv_sge}
+    npad::Union{Integer, NTuple{N,Integer}}=0
+) where N
     # Reshape bufs to matrices
     bufmats = matrix_reshape.(bufs)
 
     # Ensure all bufs have the same number of packets
-    nupkts = unique(size.(bufmats, 2))
-    if length(nupkts) != 1
-        throw(ArgumentError("all bufs must hold the same number of packets (got $nupkts)"))
+    npkts = size(bufmats[1], 2)
+    if any(b->size(b, 2) != npkts, bufmats)
+        throw(ArgumentError("all bufs must hold the same number of packets (got $(size.(bufmats, 2)))"))
     end
-    npkts = nupkts[1]
 
     # num_wr must be <= npkts
     if num_wr > npkts
-        throw(ArgumentError("num_wr ($num_wr) cannot exceed number of packets ($npkt)"))
+        throw(ArgumentError("num_wr ($num_wr) cannot exceed number of packets ($npkts)"))
     end
 
     # Use broadcasting to create Matrix{ibv_sge}
@@ -98,24 +98,25 @@ end
 Return `num_wr` `ibv_recv_wr` work requests (WRs) and their associated
 scatter-gather (SG) lists.
 
-`bufs` and `mrs`, if given, must be Vectors.  If the form with `ctx::Context` is
-called, the memory region(s) of `bufs` will be registered before calling the
-`mrs` form and the resulting MRs will be returned in addition to the WRs and SG
-lists.  If memory regions `mrs` are given, their `lkey` values will be used when
-populating the SG lists so `mrs` must correspond to `bufs`.  All of the Arrays
-in `bufs` must hold the same number of packets (i.e. packet fragments).  See the
-doc string for [`create_sges`](@ref) for details about the `npad` parameter.
+`bufs` and `mrs`, if given, must be tuples.  If the form with `ctx::Context` is
+called, `bufs` may be a `NamedTuple`, the memory region(s) of `bufs` will be
+registered before calling the `mrs` form, and the resulting MRs will be returned
+in addition to the WRs and SG lists.  If memory regions `mrs` are given, their
+`lkey` values will be used when populating the SG lists so `mrs` must correspond
+to `bufs`.  All of the `AbstractArrays` in `bufs` must hold the same number of
+packets (i.e. packet fragments).  See the doc string for [`create_sges`](@ref)
+for details about the `npad` parameter.
 
 The `Context` form also accepts keyword argument `post` (default `false`).  If
 `post` is `true`, the work requests will be posted and the `Context`'s QP will
 be transitioned to a "ready-to-receive" (RTR) compatible state.
 """
 function create_recv_wrs(
-    mrs::AbstractVector{Ptr{ibv_mr}},
-    bufs::AbstractVector{<:AbstractArray},
+    mrs::NTuple{N, Ptr{ibv_mr}},
+    bufs::NTuple{N, AbstractArray},
     num_wr::Integer,
-    npad::Union{Integer, Vector{<:Integer}}=0
-)
+    npad::Union{Integer, NTuple{N, Integer}}=0
+) where N
     # Create and initialize SGEs
     sges = create_sges(bufs, get_lkey.(mrs), num_wr, npad)
     sgheads = view(sges, 1, :)
@@ -147,15 +148,25 @@ end
 
 function create_recv_wrs(
     ctx::Context,
-    bufs::AbstractVector{<:AbstractArray},
+    bufs::NTuple{N, AbstractArray},
     num_wr::Integer,
-    npad::Union{Integer, Vector{<:Integer}}=0;
+    npad::Union{Integer, NTuple{N, Integer}}=0;
     post=false
-)
+) where N
     mrs = reg_mr.(Ref(ctx), bufs)
     recv_wrs, sges = create_recv_wrs(mrs, bufs, num_wr, npad)
     post && post_wrs(ctx, pointer(recv_wrs); modify_qp=true)
     recv_wrs, sges, mrs
+end
+
+function create_recv_wrs(
+    ctx::Context,
+    bufs::NamedTuple,
+    num_wr::Integer,
+    npad::Union{Integer, NTuple{N, Integer}}=0;
+    post=false
+) where N
+    create_recv_wrs(ctx, Tuple(bufs), num_wr, npad; post)
 end
 
 """
@@ -165,13 +176,14 @@ end
 Return `num_wr` `ibv_send_wr` work requests (WRs) and their associated
 scatter-gather (SG) lists.
 
-`bufs` and `mrs`, if given, must be Vectors.  If the form with `ctx::Context` is
-called, the memory region(s) of `bufs` will be registered before calling the
-`mrs` form and the resulting MRs will be returned in addition to the WRs and SG
-lists.  If memory regions `mrs` are given, their `lkey` values will be used when
-populating the SG lists so `mrs` must correspond to `bufs`.  All of the Arrays
-in `bufs` must hold the same number of packets (i.e. packet fragments).  See the
-doc string for [`create_sges`](@ref) for details about the `npad` parameter.
+`bufs` and `mrs`, if given, must be tuples.  If the form with `ctx::Context` is
+called, `bufs` may also be a `NamedTuple`, the memory region(s) of `bufs` will
+be registered before calling the `mrs` form, and the resulting MRs will be
+returned in addition to the WRs and SG lists.  If memory regions `mrs` are
+given, their `lkey` values will be used when populating the SG lists so `mrs`
+must correspond to `bufs`.  All of the `AbstractArrays` in `bufs` must hold the
+same number of packets (i.e. packet fragments).  See the doc string for
+[`create_sges`](@ref) for details about the `npad` parameter.
 
 The `Context` form also accepts keyword arguments `offload` and `post`, both of
 which default to `false`.  If `offload` is `true` the WRs will be setup to
@@ -181,12 +193,12 @@ for more details.  If `post` is `true`, the `Context`'s QP will be transitioned
 to the "ready-to-send" (RTS) state and the work requests will be posted.
 """
 function create_send_wrs(
-    mrs::AbstractVector{Ptr{ibv_mr}},
-    bufs::AbstractVector{<:AbstractArray},
+    mrs::NTuple{N, Ptr{ibv_mr}},
+    bufs::NTuple{N, AbstractArray},
     num_wr::Integer,
-    npad::Union{Integer, Vector{<:Integer}}=0;
+    npad::Union{Integer, NTuple{N, Integer}}=0;
     offload=false
-)
+) where N
     # Create and initialize SGEs
     sges = create_sges(bufs, get_lkey.(mrs), num_wr, npad)
     sgheads = view(sges, 1, :)
@@ -227,16 +239,27 @@ end
 
 function create_send_wrs(
     ctx::Context,
-    bufs::AbstractVector{<:AbstractArray},
+    bufs::NTuple{N, AbstractArray},
     num_wr::Integer,
-    npad::Union{Integer, Vector{<:Integer}}=0;
+    npad::Union{Integer, NTuple{N, Integer}}=0;
     offload=false,
     post=false
-)
+) where N
     mrs = reg_mr.(Ref(ctx), bufs)
     send_wrs, sges = create_send_wrs(mrs, bufs, num_wr, npad; offload)
     post && post_wrs(ctx, pointer(send_wrs); modify_qp=true)
     send_wrs, sges, mrs
+end
+
+function create_send_wrs(
+    ctx::Context,
+    bufs::NamedTuple,
+    num_wr::Integer,
+    npad::Union{Integer, NTuple{N, Integer}}=0;
+    offload=false,
+    post=false
+) where N
+    create_send_wrs(ctx, Tuple(bufs), num_wr, npad; offload, post)
 end
 
 """

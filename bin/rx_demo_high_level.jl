@@ -35,7 +35,7 @@ recv_buf = zeros(UInt8, mtu, npkts_max);
 #---
 # Register packet receive buffers and create (and post) num_wr receive WRs.
 
-recv_wrs, _sges, _mrs = create_recv_wrs(ctx, [recv_buf], num_wr; post=true);
+recv_wrs, _sges, _mrs = create_recv_wrs(ctx, tuple(recv_buf), num_wr; post=true);
 
 #---
 # Define our repost_loop callback function
