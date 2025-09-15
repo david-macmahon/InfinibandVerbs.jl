@@ -311,15 +311,18 @@ function post_wrs(ctx::Context,
 end
 
 """
-    link_wrs!(wrs, n=length(wrs))
+    link_wrs!(wrs, n=length(wrs); tail=C_NULL)
 
-Link the first `n`, default all) work requests in `wrs`.  `n < 1` does nothing.
-`n >= length(wrs)` links all work requests in `wrs`.  Returns `wrs`.
+Link the first `n`, default all) work requests in `wrs`.
+
+`n < 1` does nothing.  `n >= length(wrs)` links all work requests in `wrs`.
+The `next` pointer of the final element will be set to `tail`, which defaults to
+`C_NULL`.  This can be used to link `wrs` onto the head of another linked list.
+Returns `wrs`.
 """
 function link_wrs!(
-    wrs::AbstractVector{<:Union{ibv_send_wr,ibv_recv_wr}},
-    n=length(wrs)
-)
+    wrs::AbstractVector{T}, n=length(wrs); tail::Ptr{T}=Ptr{T}(C_NULL)
+) where T <:Union{ibv_send_wr,ibv_recv_wr}
     n < 1 && return wrs
     n = min(n, length(wrs))
 
@@ -328,26 +331,27 @@ function link_wrs!(
         pnext = pointer(wrs, wr_id+1)
         pointer(wrs, wr_id).next  = pnext
     end
-    # Null terminate the linked list
-    pointer(wrs, n).next = C_NULL
+    # Set the tail's next poitner to `tail`
+    pointer(wrs, n).next = tail
 
     wrs
 end
 
 """
-    link_wrs!(wrs, wcs, num_wc)
+    link_wrs!(wrs, wcs, num_wc; tail=C_NULL)
 
 Link work requests in `wrs` identified by work completions `wcs[1:num_wc]`.
 
 `num_wc < 1` does nothing.  `num_wc >= length(wcs)` links work requests
-identified by all work completiond in `wcs`.
-Throws an exception if `num_wcs > length(wrs)`.  Returns `wrs`.
+identified by all work completions in `wcs`.  The `next` pointer of the final
+element will be set to `tail`, which defaults to `C_NULL`.  This can be used to
+link `wrs` onto the head of another linked list.  Throws an exception if
+`num_wcs > length(wrs)`.  Returns `wrs`.
 """
 function link_wrs!(
-    wrs::AbstractVector{<:Union{ibv_send_wr,ibv_recv_wr}},
-    wcs::AbstractVector{ibv_wc},
-    num_wc
-)
+    wrs::AbstractVector{T}, wcs::AbstractVector{ibv_wc}, num_wc;
+    tail::Ptr{T}=Ptr{T}(C_NULL)
+) where {T<:Union{ibv_send_wr,ibv_recv_wr}}
     num_wc < 1 && return wrs
     num_wc = min(num_wc, length(wcs))
     num_wc > length(wrs) && error("more WCs than WRs ($num_wc > $(length(wrs)))")
@@ -361,8 +365,8 @@ function link_wrs!(
         pointer(wrs, wr_id).next  = pnext
         wr_id = wr_id_next
     end
-    # Null terminate the linked list
-    pointer(wrs, wr_id).next = C_NULL
+    # Set the tail's next poitner to `tail`
+    pointer(wrs, wr_id).next = tail
 
     wrs
 end
