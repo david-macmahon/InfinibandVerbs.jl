@@ -249,7 +249,7 @@ function open_device_by_name(dev_name, _::Nothing=nothing)
     context
 end
 
-function open_device_by_name(dev_name, port_num)
+function open_device_by_name(dev_name, port_num::Integer)
     context = open_device_by_name(dev_name)
     port_attr = Ref{ibv_port_attr}()
     errno = ibv_query_port(context, port_num, port_attr)
@@ -260,6 +260,20 @@ function open_device_by_name(dev_name, port_num)
         throw(InvalidStateException(msg, Symbol(port_attr[].state)))
     end
     context
+end
+
+"""
+    open_device_by_name(f, dev_name::AbstractString) -> f(context)
+
+Return `f(open_device_by_name(dev_name))` after closing device `dev_name`.
+"""
+function open_device_by_name(f, dev_name::AbstractString)
+    context = open_device_by_name(dev_name)
+    try
+        f(context)
+    finally
+        close(context)
+    end
 end
 
 """
