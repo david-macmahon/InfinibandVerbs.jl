@@ -26,6 +26,20 @@ function get_lkey(mr::Ptr{ibv_mr})
 end
 
 """
+    matrix_reshape(v::AbstractVector) -> Matrix
+    matrix_reshape(v::AbstractMatrix) -> Matrix
+
+Return a Matrix referring to the same data as `a`.
+
+Treats `a::AbstractVector` as a 1xN `Matrix`.  Same as identity for
+`a::AbstractMatrix`.
+"""
+matrix_reshape(v::AbstractVector) = reshape(v, 1, :) # treat Vector as a 1xN Matrix
+matrix_reshape(m::AbstractMatrix) = m # Matrices need no reshaping
+# Do not support arrays with higher dimensionality (yet?)
+#matrix_reshape(a::AbstractArray) = reshape(a, size(a, 1), :) # Reshape to Matrix
+
+"""
     create_sges(bufs, lkeys, num_wr[, npad]) -> Matrix{ibv_sge}
 
 Return a `Matrix{ibv_sge}` of size `(length(bufs), num_wr)`.
@@ -52,7 +66,7 @@ function create_sges(
     npad::Union{Integer, Vector{<:Integer}}=0
 )::Matrix{ibv_sge}
     # Reshape bufs to matrices
-    bufmats = reshape.(bufs, size.(bufs, 1), :)
+    bufmats = matrix_reshape.(bufs)
 
     # Ensure all bufs have the same number of packets
     nupkts = unique(size.(bufmats, 2))
