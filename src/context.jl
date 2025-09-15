@@ -255,11 +255,30 @@ function open_device_by_name(dev_name, port_num)
     errno = ibv_query_port(context, port_num, port_attr)
     errno == 0 || throw(SystemErrer("ibv_query_port"))
     if port_attr[].state != IBV_PORT_ACTIVE
-        ibv_close_device(context)
+        close(context)
         msg = "device $dev_name port $port_num is not active"
         throw(InvalidStateException(msg, Symbol(port_attr[].state)))
     end
     context
+end
+
+"""
+    close(ctx) -> nothing
+
+Close the device associated with `ctx`.
+
+`ctx` may be a `Ptr{ibv_context}` or a `Context`.  Closing a device does not
+release all the resources allocated using context `ctx`.  To avoid resource
+leaks, the user should release all associated resources before closing a device.
+"""
+function Base.close(ctx::Ptr{ibv_context})
+    status = ibv_close_device(ctx)
+    status == 0 || throw(SystemError("ibv_close_device"))
+    nothing
+end
+
+function Base.close(ctx::Context)
+    close(ctx.context)
 end
 
 function Poll.fcntl_setnonblock(comp_channel::Ptr{ibv_comp_channel})
