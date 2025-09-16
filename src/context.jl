@@ -213,6 +213,60 @@ function Base.show(io::IO, ctx::Context)
 end
 
 """
+    get_device_names(f) -> Vector{String}
+
+Get the names of all supported devices of current host.
+
+The returned Vector will be empty if no devices are found.
+"""
+function get_device_names()
+    num_devices = Ref{Cint}(0)
+    dev_list = ibv_get_device_list(num_devices)
+    if dev_list == C_NULL
+        throw(SystemError("Failed to get devices list"))
+    end
+
+    try
+        dev_names = String[]
+        for i = 1:num_devices[]
+            dev = unsafe_load(dev_list, i)
+            push!(dev_names, ibv_get_device_name(dev)|>unsafe_string)
+        end
+        dev_names
+    finally
+        # Free device list resources
+        ibv_free_device_list(dev_list)
+    end
+end
+
+"""
+    get_device_guids() -> Vector{UInt64}
+
+Get the GUIDs of all supported devices of current host (in host byte order).
+
+The returned Vector will be empty if no devices are found.
+"""
+function get_device_guids()
+    num_devices = Ref{Cint}(0)
+    dev_list = ibv_get_device_list(num_devices)
+    if dev_list == C_NULL
+        throw(SystemError("Failed to get devices list"))
+    end
+
+    try
+        dev_guids = UInt64[]
+        for i = 1:num_devices[]
+            dev = unsafe_load(dev_list, i)
+            push!(dev_guids, ntoh(ibv_get_device_guid(dev)))
+        end
+        dev_guids
+    finally
+        # Free device list resources
+        ibv_free_device_list(dev_list)
+    end
+end
+
+"""
     open_device_by_name(dev_name[, port_num]) -> Ptr{ibv_context}
 
 Open device `dev_name` and return `Ptr{ibv_context}`.
